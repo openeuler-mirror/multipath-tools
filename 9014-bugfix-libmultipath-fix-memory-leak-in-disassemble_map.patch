@@ -1,0 +1,87 @@
+From db72d840682d15abb2e6694704a91200e513dbac Mon Sep 17 00:00:00 2001
+From: root <root@localhost.localdomain>
+Date: Fri, 22 Mar 2019 20:33:53 +0800
+Subject: [PATCH 5/5] libmultipath: fix memory leak in disassemble_map
+
+---
+ libmultipath/dmparser.c    | 12 ++++++++++--
+ libmultipath/structs_vec.c | 10 ++++++++++
+ 2 files changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/libmultipath/dmparser.c b/libmultipath/dmparser.c
+index 620f507..1558c4e 100644
+--- a/libmultipath/dmparser.c
++++ b/libmultipath/dmparser.c
+@@ -142,6 +142,7 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
+ 	int def_minio = 0;
+ 	struct path * pp;
+ 	struct pathgroup * pgp;
++	int pp_unfound;
+ 
+ 	p = params;
+ 
+@@ -291,6 +292,7 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
+ 			char devname[FILE_NAME_SIZE];
+ 
+ 			pp = NULL;
++			pp_unfound = 0;
+ 			p += get_word(p, &word);
+ 
+ 			if (!word)
+@@ -310,6 +312,7 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
+ 			}
+ 
+ 			if (!pp) {
++				pp_unfound = 1;
+ 				pp = alloc_path();
+ 
+ 				if (!pp)
+@@ -322,8 +325,10 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
+ 						WWID_SIZE - 1);
+ 				}
+ 				/* Only call this in multipath client mode */
+-				if (!is_daemon && store_path(pathvec, pp))
++				if (!is_daemon && store_path(pathvec, pp)) {
++					free_path(pp);
+ 					goto out1;
++				}
+ 			} else {
+ 				if (!strlen(pp->wwid) &&
+ 				    strlen(mpp->wwid))
+@@ -332,8 +337,11 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
+ 			}
+ 			FREE(word);
+ 
+-			if (store_path(pgp->paths, pp))
++			if (store_path(pgp->paths, pp)) {
++				if (pp_unfound)
++					free_path(pp);
+ 				goto out;
++			}
+ 
+ 			/*
+ 			 * Update wwid for multipaths which are not setup
+diff --git a/libmultipath/structs_vec.c b/libmultipath/structs_vec.c
+index 6c42824..828aef2 100644
+--- a/libmultipath/structs_vec.c
++++ b/libmultipath/structs_vec.c
+@@ -252,6 +252,16 @@ void sync_paths(struct multipath *mpp, vector pathvec)
+ 	update_mpp_paths(mpp, pathvec);
+ 	vector_foreach_slot (mpp->paths, pp, i)
+ 		pp->mpp = mpp;
++
++	vector_foreach_slot (mpp->pg, pgp, i) {
++		vector_foreach_slot (pgp->paths, pp, j) {
++			if ((find_slot(mpp->paths, pp) == -1) \
++				&& (find_slot(pathvec, pp) == -1)) {
++				vector_del_slot(pgp->paths, j--);
++				free_path(pp);
++			}
++		}
++	}
+ }
+ 
+ int
+-- 
+2.19.1
+

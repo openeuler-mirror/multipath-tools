@@ -1,0 +1,139 @@
+From 2c3047d7f6bd8cdd1d92cab32893cecdd5a1dfa9 Mon Sep 17 00:00:00 2001
+From: root <root@localhost.localdomain>
+Date: Fri, 22 Mar 2019 19:48:35 +0800
+Subject: [PATCH] clear mpp path reference when path is freed, otherwise double
+  free may occur in verify_paths.
+
+call stack:
+    vecs=vecs@entry=0x557b01d62140, rpvec=rpvec@entry=0x0) at structs_vec.c:521
+    at main.c:574
+    uev=<optimized out>) at main.c:510
+    uev_trigger=uev_trigger@entry=0x557affdfe3d0 <uev_trigger>, trigger_data=<optimized out>)
+    at uevent.c:178
+---
+ libmultipath/discovery.c | 10 ++++++----
+ libmultipath/discovery.h |  2 +-
+ multipathd/main.c        | 23 ++++++++++++++++++++++-
+ 3 files changed, 29 insertions(+), 6 deletions(-)
+
+diff --git a/libmultipath/discovery.c b/libmultipath/discovery.c
+index 53fc67a..305d27c 100644
+--- a/libmultipath/discovery.c
++++ b/libmultipath/discovery.c
+@@ -112,7 +112,7 @@ transport (int h)
+ }
+ 
+ int
+-remove_local_path (vector pathvec, struct path *pp)
++remove_local_path (vector pathvec, struct path *pp, int isfree)
+ {
+ 	int i = -1;
+ 
+@@ -127,7 +127,9 @@ remove_local_path (vector pathvec, struct path *pp)
+ 	if ((i = find_slot(pathvec, (void *)pp)) != -1) {
+ 		vector_del_slot(pathvec, i);
+ 	}
+-	free_path(pp);
++	if(isfree){
++		free_path(pp);
++	}
+ 	return 0;
+ }
+ 
+@@ -235,7 +237,7 @@ path_discover (vector pathvec, struct config * conf,
+ 			if (err == 1)
+ 				return 1;
+ 			if (err == 0)
+-				remove_local_path(pathvec, pp);
++				remove_local_path(pathvec, pp, 1);
+ 			return 0;
+ 		}
+ 	}
+@@ -243,7 +245,7 @@ path_discover (vector pathvec, struct config * conf,
+ 	if (err)
+ 		return err;
+ 
+-	remove_local_path(pathvec, pp);
++	remove_local_path(pathvec, pp, 1);
+ 	return err;
+ }
+ 
+diff --git a/libmultipath/discovery.h b/libmultipath/discovery.h
+index c4b1d25..0fb0d3a 100644
+--- a/libmultipath/discovery.h
++++ b/libmultipath/discovery.h
+@@ -53,7 +53,7 @@ ssize_t sysfs_get_vpd (struct udev_device * udev, int pg, unsigned char * buff,
+ int sysfs_get_asymmetric_access_state(struct path *pp,
+ 				      char *buff, int buflen);
+ int get_uid(struct path * pp, int path_state, struct udev_device *udev);
+-int remove_local_path(vector pathvec, struct path *pp);
++int remove_local_path(vector pathvec, struct path *pp, int isfree);
+ 
+ /*
+  * discovery bitmask
+diff --git a/multipathd/main.c b/multipathd/main.c
+index b180f2a..8de0871 100644
+--- a/multipathd/main.c
++++ b/multipathd/main.c
+@@ -815,6 +815,21 @@ ev_remove_map (char * devname, char * alias, int minor, struct vectors * vecs)
+ 	return flush_map(mpp, vecs, 0);
+ }
+ 
++static
++void clear_ref_from_mpp(struct path * pp, struct vectors * vecs)
++{
++	struct multipath * mpp = NULL;
++	int i = -1;
++
++	mpp = find_mp_by_wwid(vecs->mpvec, pp->wwid);
++	if(!!mpp){
++		condlog(2, "%s: clear path from mpp %s", pp->dev, mpp->alias);
++		if ((i = find_slot(mpp->paths, (void *)pp)) != -1){
++			vector_del_slot(mpp->paths, i);
++		}
++	}
++}
++
+ static int
+ uev_add_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
+ {
+@@ -857,6 +872,7 @@ uev_add_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
+ 				i = find_slot(vecs->pathvec, (void *)pp);
+ 				if (i != -1)
+ 					vector_del_slot(vecs->pathvec, i);
++				clear_ref_from_mpp(pp, vecs);
+ 				free_path(pp);
+ 			} else {
+ 				condlog(0, "%s: failed to reinitialize path",
+@@ -918,8 +934,11 @@ ev_add_path (struct path * pp, struct vectors * vecs, int need_do_map)
+ 	int ret;
+ 
+ 	/* if pp is local path,remove it and return 0. */
+-	if (!remove_local_path(vecs->pathvec, pp))
++	if (!remove_local_path(vecs->pathvec, pp, 0)){
++		clear_ref_from_mpp(pp, vecs);
++		free_path(pp);
+ 		return 0;
++	}
+ 
+ 	/*
+ 	 * need path UID to go any further
+@@ -950,6 +969,7 @@ rescan:
+ 			int i = find_slot(vecs->pathvec, (void *)pp);
+ 			if (i != -1)
+ 				vector_del_slot(vecs->pathvec, i);
++			clear_ref_from_mpp(pp, vecs);
+ 			free_path(pp);
+ 			return 1;
+ 		}
+@@ -1182,6 +1202,7 @@ out:
+ 	if ((i = find_slot(vecs->pathvec, (void *)pp)) != -1)
+ 		vector_del_slot(vecs->pathvec, i);
+ 
++	clear_ref_from_mpp(pp, vecs);
+ 	free_path(pp);
+ 
+ 	return retval;
+-- 
+2.19.1
+

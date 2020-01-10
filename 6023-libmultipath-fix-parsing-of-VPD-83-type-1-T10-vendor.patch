@@ -1,0 +1,50 @@
+From 552bcf2f6245cbce4326455e28ab7c1160871978 Mon Sep 17 00:00:00 2001
+From: Martin Wilck <mwilck@suse.com>
+Date: Mon, 24 Jun 2019 11:27:40 +0200
+Subject: [PATCH 3/8] libmultipath: fix parsing of VPD 83 type 1 (T10 vendor
+ ID)
+
+In the buffer overflow case, the code would set p_len = out_len - len - 2,
+then len = len + plen = out_len - 2, and check if len >= out_len - 1,
+which is never the case. Rather, set p_len = out_len - len -1, and
+check the length again before appending the underscore.
+
+Fixes: 18176202e75c "Read wwid from sysfs vpg_pg83 attribute"
+Signed-off-by: Martin Wilck <mwilck@suse.com>
+---
+ libmultipath/discovery.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/libmultipath/discovery.c b/libmultipath/discovery.c
+index a852843..9e99d9d 100644
+--- a/libmultipath/discovery.c
++++ b/libmultipath/discovery.c
+@@ -1151,8 +1151,11 @@ parse_vpd_pg83(const unsigned char *in, size_t in_len,
+ 			p = vpd;
+ 			while ((p = memchr(vpd, ' ', vpd_len))) {
+ 				p_len = p - vpd;
+-				if (len + p_len > out_len - 1)
+-					p_len = out_len - len - 2;
++				if (len + p_len > out_len - 1) {
++					condlog(1, "%s: WWID overflow, type 1, %d/%lu bytes required",
++						__func__, len + p_len, out_len);
++					p_len = out_len - len - 1;
++				}
+ 				memcpy(out + len, vpd, p_len);
+ 				len += p_len;
+ 				if (len >= out_len - 1) {
+@@ -1161,6 +1164,10 @@ parse_vpd_pg83(const unsigned char *in, size_t in_len,
+ 				}
+ 				out[len] = '_';
+ 				len ++;
++				if (len >= out_len - 1) {
++					out[len] = '\0';
++					break;
++				}
+ 				vpd = p;
+ 				vpd_len -= p_len;
+ 				while (vpd && *vpd == ' ') {
+-- 
+1.8.3.1
+
+
