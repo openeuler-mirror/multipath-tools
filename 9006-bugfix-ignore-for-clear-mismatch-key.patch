@@ -1,0 +1,49 @@
+From de2078dd66a62ca7ba2ae6adc406311e830572fa Mon Sep 17 00:00:00 2001
+From: sunguoshuai <sunguoshuai@huawei.com>
+Date: Wed, 23 Jan 2019 02:38:00 -0500
+Subject: [PATCH] ignore for clear mismatch key
+
+reason:ignore for clear mismatch key
+---
+ libmpathpersist/mpath_persist.c | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/libmpathpersist/mpath_persist.c b/libmpathpersist/mpath_persist.c
+index a2907db..27c848c 100644
+--- a/libmpathpersist/mpath_persist.c
++++ b/libmpathpersist/mpath_persist.c
+@@ -345,7 +345,8 @@ int mpath_persistent_reserve_out ( int fd, int rq_servact, int rq_scope,
+ 	if (mpp->prkey_source == PRKEY_SOURCE_FILE && prkey &&
+ 	    ((!get_be64(mpp->reservation_key) &&
+ 	      rq_servact == MPATH_PROUT_REG_SA) ||
+-	     rq_servact == MPATH_PROUT_REG_IGN_SA)) {
++              rq_servact == MPATH_PROUT_REG_IGN_SA ||
++              (!memcmp(paramp->key, &mpp->reservation_key, 8) && rq_servact == MPATH_PROUT_REG_SA))) {
+ 		memcpy(&mpp->reservation_key, paramp->sa_key, 8);
+ 		if (update_prkey_flags(alias, get_be64(mpp->reservation_key),
+ 				       paramp->sa_flags)) {
+@@ -362,12 +363,16 @@ int mpath_persistent_reserve_out ( int fd, int rq_servact, int rq_scope,
+                 uireservation >>= 8;
+         }
+  
+-        if (memcmp(paramp->key, uitmp, 8) &&
+-            memcmp(paramp->sa_key, uitmp, 8)) {
++       /* pass -I option */
++        if (rq_servact != MPATH_PROUT_REG_IGN_SA) {
++                if (memcmp(paramp->key, uitmp, 8) &&
++                memcmp(paramp->sa_key, uitmp, 8)) {
++                        condlog(0, "%s: configured reservation key doesn't match: 0x%" PRIx64, alias, get_be64(mpp->reservation_key));
++                        ret = MPATH_PR_SYNTAX_ERROR;
++                        goto out1;
++                }
++ 
+ 
+-		condlog(0, "%s: configured reservation key doesn't match: 0x%" PRIx64, alias, get_be64(mpp->reservation_key));
+-		ret = MPATH_PR_SYNTAX_ERROR;
+-		goto out1;
+ 	}
+ 
+ 	switch(rq_servact)
+-- 
+1.8.3.1
+

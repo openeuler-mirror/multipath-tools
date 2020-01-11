@@ -1,0 +1,206 @@
+From f637f15dacc660f663a6cf36e3fe8f7a0cc9f9e4 Mon Sep 17 00:00:00 2001
+From: chenminhua <chenminhua1@huawei.com>
+Date: Mon, 2 Apr 2018 04:01:04 -0400
+Subject: [PATCH] 1hostos-patch-upgrade:0330 hotpatch modify
+
+[Changelog]:add upgrade path
+[Author]:chenminhua
+
+---
+ libmultipath/discovery.c | 129 +++++++++++++++++++++++++++++++++++++--
+ libmultipath/discovery.h |   1 +
+ multipathd/main.c        |   4 ++
+ 3 files changed, 128 insertions(+), 6 deletions(-)
+
+diff --git a/libmultipath/discovery.c b/libmultipath/discovery.c
+index 0b1855d..95eb3a0 100644
+--- a/libmultipath/discovery.c
++++ b/libmultipath/discovery.c
+@@ -34,6 +34,103 @@
+ #include "prioritizers/alua_rtpg.h"
+ #include "foreign.h"
+ 
++const char *conf_file = "/etc/multipath_private.conf";
++static int conf_file_parsed = 0;
++static int should_remove_local_disk = 0;
++
++static void parse_config()
++{
++	FILE *fp = NULL;
++	char buffer[256] = {0};
++	char *str = NULL;
++	char *p = NULL;
++
++	fp = fopen(conf_file, "r");
++	if (fp) {
++		while (fgets(buffer, sizeof(buffer), fp)) {
++			str = buffer;
++			/* skip the space */
++			while (isspace(*str))
++				str++;
++			/* skip the comment line */
++			if (strncmp(str, "#", 1) == 0)
++				continue;
++			/* skip line feed */
++			if((p = strchr(str, '\n')) != NULL)
++				*p = '\0';
++			if (strstr(str, "remove_local_disk") != NULL && (p = strstr(str, "=")) != NULL){
++				str = p + 1;
++				/* skip the space */
++				while (isspace(*str))
++					str++;
++				if (strcmp(str, "1") == 0){
++					should_remove_local_disk = 1;
++				}
++				break;
++			}
++		}
++		fclose(fp);
++		fp = NULL;
++	}
++	conf_file_parsed = 1;
++}
++
++static int get_should_remove_local_disk()
++{
++	if (!conf_file_parsed)
++		parse_config();
++	return should_remove_local_disk;
++}
++
++/* Filter the local disks and remove them from pathvec */
++static int
++transport (int h)
++{
++	char buff[PATH_SIZE];
++	int len, off;
++	struct stat a_stat;
++
++	/* FC host */
++	strcpy(buff, "/sys");
++	strcat(buff, "/class/fc_host/");
++	len = strlen(buff);
++	snprintf(buff + len, PATH_SIZE - len, "host%d", h);
++	if ((stat(buff, &a_stat) >= 0) && S_ISDIR(a_stat.st_mode)) {
++		return 0;
++	}
++	memset(buff, 0, PATH_SIZE);
++
++	/* iSCSI device */
++	strcpy(buff, "/sys");
++	strcat(buff, "/class/iscsi_host/");
++	off = strlen(buff);
++	snprintf(buff + off, PATH_SIZE - off, "host%d", h);
++	if ((stat(buff, &a_stat) >= 0) && S_ISDIR(a_stat.st_mode)) {
++		return 0;
++	}
++	return 1;
++}
++
++int
++remove_local_path (vector pathvec, struct path *pp)
++{
++	int i = -1;
++
++	if(!get_should_remove_local_disk()){
++		return 1;
++	}
++
++	if (transport(pp->sg_id.host_no) == 0) {
++		return 1;
++	}
++
++	if ((i = find_slot(pathvec, (void *)pp)) != -1) {
++		vector_del_slot(pathvec, i);
++	}
++	free_path(pp);
++	return 0;
++}
++
+ int
+ alloc_path_with_pathinfo (struct config *conf, struct udev_device *udevice,
+ 			  const char *wwid, int flag, struct path **pp_ptr)
+@@ -118,6 +215,7 @@ path_discover (vector pathvec, struct config * conf,
+ {
+ 	struct path * pp;
+ 	const char * devname;
++	int err = 1;
+ 
+ 	devname = udev_device_get_sysname(udevice);
+ 	if (!devname)
+@@ -131,11 +229,22 @@ path_discover (vector pathvec, struct config * conf,
+ 		snprintf(devt, BLK_DEV_SIZE, "%d:%d",
+ 			 major(devnum), minor(devnum));
+ 		pp = find_path_by_devt(pathvec, devt);
+-		if (!pp)
+-			return store_pathinfo(pathvec, conf,
+-					      udevice, flag, NULL);
++		if (!pp) {
++			err = store_pathinfo(pathvec, conf,
++						udevice, flag, &pp);
++			if (err == 1)
++				return 1;
++			if (err == 0)
++				remove_local_path(pathvec, pp);
++			return 0;
++		}
+ 	}
+-	return pathinfo(pp, conf, flag);
++	err = pathinfo(pp, conf, flag);
++	if (err)
++		return err;
++
++	remove_local_path(pathvec, pp);
++	return err;
+ }
+ 
+ int
+@@ -1882,8 +1991,16 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
+ 	/*
+ 	 * fetch info available in sysfs
+ 	 */
+-	if (mask & DI_SYSFS && sysfs_pathinfo(pp, conf->hwtable))
+-		return PATHINFO_FAILED;
++	if (mask & DI_SYSFS) {
++		if (sysfs_pathinfo(pp, conf->hwtable))
++			return 1;
++
++		/* free local device */
++		if (transport(pp->sg_id.host_no)) {
++			condlog(3, "%s is a local device", pp->dev);
++			return 0;
++		}
++	}
+ 
+ 	if (mask & DI_BLACKLIST && mask & DI_SYSFS) {
+ 		if (filter_device(conf->blist_device, conf->elist_device,
+diff --git a/libmultipath/discovery.h b/libmultipath/discovery.h
+index 9aacf75..c4b1d25 100644
+--- a/libmultipath/discovery.h
++++ b/libmultipath/discovery.h
+@@ -53,6 +53,7 @@ ssize_t sysfs_get_vpd (struct udev_device * udev, int pg, unsigned char * buff,
+ int sysfs_get_asymmetric_access_state(struct path *pp,
+ 				      char *buff, int buflen);
+ int get_uid(struct path * pp, int path_state, struct udev_device *udev);
++int remove_local_path(vector pathvec, struct path *pp);
+ 
+ /*
+  * discovery bitmask
+diff --git a/multipathd/main.c b/multipathd/main.c
+index 7a80688..c2757c4 100644
+--- a/multipathd/main.c
++++ b/multipathd/main.c
+@@ -917,6 +917,10 @@ ev_add_path (struct path * pp, struct vectors * vecs, int need_do_map)
+ 	int start_waiter = 0;
+ 	int ret;
+ 
++	/* if pp is local path,remove it and return 0. */
++	if (!remove_local_path(vecs->pathvec, pp))
++		return 0;
++
+ 	/*
+ 	 * need path UID to go any further
+ 	 */
+-- 
+2.19.1
+

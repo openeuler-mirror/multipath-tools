@@ -1,0 +1,54 @@
+diff --git a/libmultipath/configure.c b/libmultipath/configure.c
+index 1b1cc55..f66bd5b 100644
+--- a/libmultipath/configure.c
++++ b/libmultipath/configure.c
+@@ -1054,11 +1054,18 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
+ 			orphan_path(pp1, "only one path");
+ 			continue;
+ 		}
+-                /* if path is handled before */
+-                if (pp1->handled) {
+-                        condlog(3, "%s: skip handled path.", pp1->dev_t);
+-                        continue;
+-                }
++
++		/* if path is offline */
++		if (pp1->state == PATH_DOWN) {
++			orphan_path(pp1, "skip offline path");
++			continue;
++		}
++
++		/* if path is handled before */
++		if (pp1->handled) {
++			condlog(3, "%s: skip handled path.", pp1->dev_t);
++			continue;
++		}
+ 
+ 
+ 		/*
+@@ -1086,6 +1093,9 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
+ 			if (strcmp(pp1->wwid, pp2->wwid))
+ 				continue;
+ 
++			if (!pp2->size || pp2->state == PATH_DOWN)
++				continue;
++
+ 			if (!mpp->size && pp2->size)
+ 				mpp->size = pp2->size;
+ 
+diff --git a/libmultipath/structs_vec.c b/libmultipath/structs_vec.c
+index d85eb5f..6c42824 100644
+--- a/libmultipath/structs_vec.c
++++ b/libmultipath/structs_vec.c
+@@ -394,8 +394,9 @@ int verify_paths(struct multipath *mpp, struct vectors *vecs)
+ 		/*
+ 		 * see if path is in sysfs
+ 		 */
+-		if (sysfs_attr_get_value(pp->udev, "dev",
+-					 pp->dev_t, BLK_DEV_SIZE) < 0) {
++		if ((sysfs_attr_get_value(pp->udev, "dev",
++					 pp->dev_t, BLK_DEV_SIZE) < 0) ||
++			(pp->state == PATH_DOWN && pp->size != mpp->size)) {
+ 			if (pp->state != PATH_DOWN) {
+ 				condlog(1, "%s: removing valid path %s in state %d",
+ 					mpp->alias, pp->dev, pp->state);

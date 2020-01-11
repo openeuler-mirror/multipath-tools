@@ -1,0 +1,25 @@
+From 8e4c5a421ee351fe667b0bf8b99e691ab5c9c13b Mon Sep 17 00:00:00 2001
+From: wangjufeng <wangjufeng@huawei.com>
+Date: Fri, 1 Nov 2019 16:48:49 +0800
+Subject: [PATCH] fix syntax error
+
+---
+ Makefile.inc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile.inc b/Makefile.inc
+index 5ff69a3..3744aa4 100644
+--- a/Makefile.inc
++++ b/Makefile.inc
+@@ -40,7 +40,7 @@ endif
+ 
+ ifndef SYSTEMD
+ 	ifeq ($(shell systemctl --version > /dev/null 2>&1 && echo 1), 1)
+-		SYSTEMD = $(shell systemctl --version 2> /dev/null |  sed -n 's/systemd \([0-9]*\)/\1/p')
++		SYSTEMD = $(shell systemctl --version 2> /dev/null |  sed -n 's/systemd\([0-9]*\)/\1/p' | awk '{print $$1}')
+ 	endif
+ endif
+ 
+-- 
+2.19.1
+

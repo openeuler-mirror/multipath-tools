@@ -1,0 +1,31 @@
+From f39a97d2972e3959985c2771f1fc53c45897acfb Mon Sep 17 00:00:00 2001
+From: Martin Wilck <mwilck@suse.com>
+Date: Mon, 24 Jun 2019 11:27:43 +0200
+Subject: [PATCH 5/8] libmultipath: fix another WWID overflow in
+ parse_vpd_pg83()
+
+This one is an obvious typo.
+
+Fixes: 18176202e75c "Read wwid from sysfs vpg_pg83 attribute"
+Signed-off-by: Martin Wilck <mwilck@suse.com>
+---
+ libmultipath/discovery.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libmultipath/discovery.c b/libmultipath/discovery.c
+index 416823b..c57369c 100644
+--- a/libmultipath/discovery.c
++++ b/libmultipath/discovery.c
+@@ -1136,7 +1136,7 @@ parse_vpd_pg83(const unsigned char *in, size_t in_len,
+ 				len = 1;
+ 				vpd += 4;
+ 				vpd_len -= 4;
+-				if (vpd_len > out_len + 2)
++				if (vpd_len > out_len - 2)
+ 					vpd_len = out_len - 2;
+ 				memcpy(out, vpd, vpd_len);
+ 				len = vpd_len + 1;
+-- 
+1.8.3.1
+
+

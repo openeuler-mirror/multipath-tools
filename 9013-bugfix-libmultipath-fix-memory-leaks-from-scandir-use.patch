@@ -1,0 +1,91 @@
+From a10343b550f56c6c39c6a9b8f9ad38ab825a3fa3 Mon Sep 17 00:00:00 2001
+From: root <root@localhost.localdomain>
+Date: Fri, 22 Mar 2019 19:58:56 +0800
+Subject: [PATCH 3/5] libmultipath: fix memory leaks from scandir() use
+
+upstream commit b0e8a7456dd83cd0a5ecd1005e016656e785405f
+
+scandir() users must not only free the resulting dirent* array,
+but also every member. Add a cleanup function, and fix the
+existing users of scandir() in libmultipath.
+
+Add a small helper macro for casting function pointers to the
+type pthread_cleanup_push() expects.
+---
+ libmultipath/config.c | 10 ++++------
+ libmultipath/util.c   |  9 +++++++++
+ libmultipath/util.h   |  8 ++++++++
+ 3 files changed, 21 insertions(+), 6 deletions(-)
+
+diff --git a/libmultipath/config.c b/libmultipath/config.c
+index bfd07e3..654f330 100644
+--- a/libmultipath/config.c
++++ b/libmultipath/config.c
+@@ -640,17 +640,13 @@ free_config (struct config * conf)
+ 	FREE(conf);
+ }
+ 
+-static void free_namelist(void *nl)
+-{
+-	free(nl);
+-}
+-
+ /* if multipath fails to process the config directory, it should continue,
+  * with just a warning message */
+ static void
+ process_config_dir(struct config *conf, vector keywords, char *dir)
+ {
+ 	struct dirent **namelist;
++	struct scandir_result sr;
+ 	int i, n;
+ 	char path[LINE_MAX];
+ 	int old_hwtable_size;
+@@ -670,7 +666,9 @@ process_config_dir(struct config *conf, vector keywords, char *dir)
+ 		return;
+ 	} else if (n == 0)
+ 		return;
+-	pthread_cleanup_push(free_namelist, namelist);
++	sr.di = namelist;
++	sr.n = n;
++	pthread_cleanup_push_cast(free_scandir_result, &sr);
+ 	for (i = 0; i < n; i++) {
+ 		if (!strstr(namelist[i]->d_name, ".conf"))
+ 			continue;
+diff --git a/libmultipath/util.c b/libmultipath/util.c
+index 3c284b7..2bb1102 100644
+--- a/libmultipath/util.c
++++ b/libmultipath/util.c
+@@ -472,3 +472,12 @@ int safe_write(int fd, const void *buf, size_t count)
+ 
+ 	return 0;
+ }
++
++void free_scandir_result(struct scandir_result *res)
++{
++       int i;
++
++       for (i = 0; i < res->n; i++)
++               FREE(res->di[i]);
++       FREE(res->di);
++}
+diff --git a/libmultipath/util.h b/libmultipath/util.h
+index 56cec76..4374720 100644
+--- a/libmultipath/util.h
++++ b/libmultipath/util.h
+@@ -28,5 +28,13 @@ int safe_write(int fd, const void *buf, size_t count);
+ 	snprintf(var, sizeof(var), format, ##args) >= sizeof(var)
+ #define safe_snprintf(var, size, format, args...)      \
+ 	snprintf(var, size, format, ##args) >= size
++#define pthread_cleanup_push_cast(f, arg)		\
++	pthread_cleanup_push(((void (*)(void *))&f), (arg))
++
++struct scandir_result {
++	struct dirent **di;
++	int n;
++};
++void free_scandir_result(struct scandir_result *);
+ 
+ #endif /* _UTIL_H */
+-- 
+2.19.1
+

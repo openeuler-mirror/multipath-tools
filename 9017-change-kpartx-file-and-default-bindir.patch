@@ -1,0 +1,42 @@
+From 768883da9969b76aade3e16d4a5b8cec47d6f30e Mon Sep 17 00:00:00 2001
+From: wangjufeng <wangjufeng@huawei.com>
+Date: Fri, 10 Jan 2020 11:57:08 +0800
+Subject: [PATCH] kpartx: change kpartx file and default bindir
+
+Change default bindir of multipath to /usr/sbin. Don't
+set device name-partition number delimiter in kpartx rules.
+
+Signed-off-by: wangjufeng <wangjufeng@huawei.com>
+---
+ Makefile.inc        | 2 +-
+ kpartx/kpartx.rules | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile.inc b/Makefile.inc
+index af2f5ba..e6466ee 100644
+--- a/Makefile.inc
++++ b/Makefile.inc
+@@ -49,7 +49,7 @@ ifndef SYSTEMDPATH
+ endif
+ 
+ prefix		=
+-exec_prefix	= $(prefix)
++exec_prefix	= $(prefix)/usr
+ usr_prefix	= $(prefix)
+ bindir		= $(exec_prefix)/sbin
+ libudevdir	= $(prefix)/$(SYSTEMDPATH)/udev
+diff --git a/kpartx/kpartx.rules b/kpartx/kpartx.rules
+index 8f99049..8a3a171 100644
+--- a/kpartx/kpartx.rules
++++ b/kpartx/kpartx.rules
+@@ -32,6 +32,6 @@ LABEL="mpath_kpartx_end"
+ GOTO="kpartx_end"
+ 
+ LABEL="run_kpartx"
+-RUN+="/sbin/kpartx -un -p -part /dev/$name"
++RUN+="/sbin/kpartx -un /dev/$name"
+ 
+ LABEL="kpartx_end"
+-- 
+1.8.3.1
+

@@ -1,0 +1,17 @@
+diff --git a/libmultipath/util.c b/libmultipath/util.c
+index 8d8fcc8..3c284b7 100644
+--- a/libmultipath/util.c
++++ b/libmultipath/util.c
+@@ -463,5 +463,12 @@ int safe_write(int fd, const void *buf, size_t count)
+ 		count -= r;
+ 		buf = (const char *)buf + r;
+ 	}
++
++	/* sync->disk */
++	if (fsync(fd) < 0) {
++		condlog(0, "failed to fsync fd :%d", fd);
++		return -errno;
++	}
++
+ 	return 0;
+ }

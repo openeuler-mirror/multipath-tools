@@ -1,0 +1,26 @@
+From fb87e6e9d5778c9b2874496ff6e44c0001a3c228 Mon Sep 17 00:00:00 2001
+From: Martin Wilck <mwilck@suse.com>
+Date: Tue, 8 Jan 2019 23:54:05 +0100
+Subject: [PATCH] libmultipath(coverity): fix "enum misuse" for find_multipaths
+
+Signed-off-by: Martin Wilck <mwilck@suse.com>
+---
+ libmultipath/dict.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libmultipath/dict.c b/libmultipath/dict.c
+index fd29abca..eaad4f18 100644
+--- a/libmultipath/dict.c
++++ b/libmultipath/dict.c
+@@ -327,7 +327,7 @@ def_find_multipaths_handler(struct config *conf, vector strvec)
+ 	int i;
+ 
+ 	if (set_yes_no_undef(strvec, &conf->find_multipaths) == 0 &&
+-	    conf->find_multipaths != YNU_UNDEF)
++	    conf->find_multipaths != FIND_MULTIPATHS_UNDEF)
+ 		return 0;
+ 
+ 	buff = set_value(strvec);
+-- 
+2.11.0
+

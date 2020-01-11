@@ -1,0 +1,31 @@
+From 156b75082c7c5d5aa832e500cf4175c3f943fa22 Mon Sep 17 00:00:00 2001
+From: Benjamin Marzinski <bmarzins@redhat.com>
+Date: Tue, 9 Oct 2018 18:03:08 -0500
+Subject: [PATCH] libmultipath: fix null dereference int alloc_path_group
+
+If all_pathgroup failed to allocate a vector for pgp->paths, instead of
+failing after it freed pgp, it would set pgp to NULL and then
+dereference it. This patch fixes that. Found by coverity.
+
+Reviewed-by: Martin Wilck <mwilck@suse.com>
+Signed-off-by: Benjamin Marzinski <bmarzins@redhat.com>
+---
+ libmultipath/structs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libmultipath/structs.c b/libmultipath/structs.c
+index ae847d61..caa178a6 100644
+--- a/libmultipath/structs.c
++++ b/libmultipath/structs.c
+@@ -165,7 +165,7 @@ alloc_pathgroup (void)
+ 
+ 	if (!pgp->paths) {
+ 		FREE(pgp);
+-		pgp = NULL;
++		return NULL;
+ 	}
+ 
+ 	dm_pathgroup_to_gen(pgp)->ops = &dm_gen_pathgroup_ops;
+-- 
+2.11.0
+

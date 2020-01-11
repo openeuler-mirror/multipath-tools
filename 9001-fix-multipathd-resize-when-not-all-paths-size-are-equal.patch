@@ -1,0 +1,37 @@
+--- multipath-tools-130222-patched/multipathd/cli_handlers.c	2017-10-12 19:19:08.000000000 +0800
++++ multipath-tools-130222-patched1/multipathd/cli_handlers.c	2017-10-17 14:43:43.000000000 +0800
+@@ -593,9 +593,10 @@
+ 	char * mapname = get_keyparam(v, MAP);
+ 	struct multipath *mpp;
+ 	int minor;
+-	unsigned long long size;
++	unsigned long long size, sz;
+ 	struct pathgroup *pgp;
+ 	struct path *pp;
++	int i,j;
+ 
+ 	mapname = convert_dev(mapname, 0);
+ 	condlog(2, "%s: resize map (operator)", mapname);
+@@ -627,6 +628,22 @@
+ 			mapname);
+ 		return 1;
+ 	}
++
++	vector_foreach_slot (mpp->pg, pgp, i) {
++		vector_foreach_slot (pgp->paths, pp, j) {
++			if (!pp->udev || sysfs_get_size(pp, &sz)) {
++				condlog(0, "%s: couldn't get size for sysfs. cannot resize",
++					mapname);
++				return 1;
++			}
++			if (size != sz) {
++				condlog(0, "%s: not all path sizes are equal, please check. cannot resize",
++					mapname);
++				return 1;
++			}
++		}
++	}
++
+ 	if (size == mpp->size) {
+ 		condlog(0, "%s: map is still the same size (%llu)", mapname,
+ 			mpp->size);
