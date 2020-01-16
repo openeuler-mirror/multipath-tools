@@ -11,7 +11,7 @@ with the OS defaults, and to enable and disable multipathing via
 a single command.
 
 Changed-by: hy-euler <eulersotragemt@huawei.com>
- Do not modify the file libmultipath/config.c,becauseit modifies 
+ Do not modify the file libmultipath/config.c, because it modifies 
  another patch which is not present in openEuler.
 
 Signed-off-by: Benjamin Marzinski <bmarzins@redhat.com>
