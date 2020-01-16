@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.7.7
-Release: 14
+Release: 15
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
@@ -21,6 +21,7 @@ Patch0009: 0009-multipath-tests-add-blacklist-tests.patch
 Patch0010: 0010-mpathpersist-add-missing-param-rk-usage-info.patch
 Patch0011: 0011-change-order-of-multipath.rules.patch
 Patch0012: 0012-RH-Remove-the-property-blacklist-exception-builtin.patch
+Patch0013: 0013-RH-add-mpathconf.patch
 
 Patch9000: 9000-fix-segfault-when-mount-or-umount-VIMS-with-reservation-conflict.patch
 Patch9001: 9001-fix-multipathd-resize-when-not-all-paths-size-are-equal.patch
@@ -191,6 +192,12 @@ fi
 
 
 %changelog
+* Thu Jan 16 2020 openEuler Buildteam <buildteam@openeuler.org> - 0.7.7-15
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: add the script mpathconf
+
 * Fri Jan 10 2020 wangjufeng <wangjufeng@huawei.com> - 0.7.7-14
 - Type:enhancement
 - ID:NA
