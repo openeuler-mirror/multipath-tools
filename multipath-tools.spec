@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.7.7
-Release: 15
+Release: 16
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
@@ -74,6 +74,7 @@ BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >=
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, git
 BuildRequires:    systemd-units, systemd-devel, json-c-devel, perl-interpreter, pkgconfig
 Requires:         userspace-rcu, json-c, device-mapper >= 1.02.96
+Requires:         kpartx = %{version}-%{release}
 Requires(post):   systemd-units
 Requires(preun):  systemd-units
 Requires(postun): systemd-units
@@ -83,8 +84,6 @@ Provides:         device-mapper-multipath
 Obsoletes:        device-mapper-multipath
 Provides:         device-mapper-multipath-libs
 Obsoletes:        device-mapper-multipath-libs
-Provides:         kpartx
-Obsoletes:        kpartx
 Provides:         libdmmp
 Obsoletes:        libdmmp
 
@@ -118,6 +117,12 @@ Provides:  device-mapper-multipath-help
 Obsoletes: device-mapper-multipath-help
 %description    help
 This contains man files for the using of multipath-tools.
+
+%package -n kpartx
+Summary: Create device maps from partition tables.
+
+%description -n kpartx
+Reads partition tables and create device maps over partitions segments detected.
 
 %prep
 %autosetup -Sgit -n multipath-tools-ef6d98b
@@ -163,7 +168,10 @@ fi
 %doc README README.alua multipath.conf
 %license LICENSES/GPL-2.0 LICENSES/LGPL-2.0 LICENSES/GPL-3.0
 %{_unitdir}/*
-        /usr/sbin/*
+        /usr/sbin/multipath
+        /usr/sbin/multipathd
+        /usr/sbin/mpathconf
+        /usr/sbin/mpathpersist
         /usr/%{_lib}/libmultipath.so
         /usr/%{_lib}/libmultipath.so.*
         /usr/%{_lib}/libmpathpersist.so.*
@@ -172,8 +180,9 @@ fi
 %dir    /etc/multipath
 %dir    /usr/%{_lib}/multipath
         /usr/%{_lib}/multipath/*
-        /usr/lib/udev/kpartx_id
-%config /usr/lib/udev/rules.d/*
+%config /usr/lib/udev/rules.d/62-multipath.rules
+%config /usr/lib/udev/rules.d/11-dm-mpath.rules
+
 
 %files devel
 %doc README
@@ -190,8 +199,23 @@ fi
 %{_mandir}/man5/*
 %{_mandir}/man8/*
 
+%files -n kpartx
+%license LICENSES/GPL-2.0
+%doc README
+/usr/sbin/kpartx
+/usr/lib/udev/kpartx_id
+%config /usr/lib/udev/rules.d/11-dm-parts.rules
+%config /usr/lib/udev/rules.d/66-kpartx.rules
+%config /usr/lib/udev/rules.d/68-del-part-nodes.rules
+
 
 %changelog
+* Mon Mar 09 2020 wangjufeng <wangjufeng@huawei.com> - 0.7.7-16
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: separate kpartx from the main package
+
 * Thu Jan 16 2020 openEuler Buildteam <buildteam@openeuler.org> - 0.7.7-15
 - Type:enhancement
 - ID:NA
