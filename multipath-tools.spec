@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.7.7
-Release: 16
+Release: 17
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
@@ -148,7 +148,6 @@ rm -rf %{buildroot}/%{_initrddir}
 
 %post
 /sbin/ldconfig
-%systemd_post multipathd.service
 
 %preun
 %systemd_preun multipathd.service
@@ -210,6 +209,12 @@ fi
 
 
 %changelog
+* Thu Mar 19 2020 hy-euler <eulerstoragemt@huawei.com> - 0.7.7-17
+- Type:enhancement
+- ID:NA
+- SUG:NA
+- DESC: disabled multipathd.service
+
 * Mon Mar 09 2020 wangjufeng <wangjufeng@huawei.com> - 0.7.7-16
 - Type:enhancement
 - ID:NA
