@@ -1,0 +1,4 @@
+version-ctrl: git
+src_repo: http://git.opensvc.com/multipath-tools/.git
+tag_prefix: v 
+seperator: "."
