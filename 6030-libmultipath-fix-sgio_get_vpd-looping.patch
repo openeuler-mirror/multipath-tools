@@ -1,0 +1,50 @@
+From b3d65f57bc63ccfc52b89adb7ab7c0bc659c00af Mon Sep 17 00:00:00 2001
+From: Benjamin Marzinski <bmarzins@redhat.com>
+Date: Wed, 19 Feb 2020 00:48:29 -0600
+Subject: [PATCH] libmultipath: fix sgio_get_vpd looping
+
+If do_inq returns a page with a length that is less than maxlen, but
+larger than DEFAULT_SGIO_LEN, this function will loop forever. Also
+if do_inq returns with a length equal to or greater than maxlen,
+sgio_get_vpd will exit immediately, even if it hasn't read the entire
+page.  Fix these issues, modify the tests to verify the new behavior.
+
+Signed-off-by: Benjamin Marzinski <bmarzins@redhat.com>
+---
+ libmultipath/discovery.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/libmultipath/discovery.c b/libmultipath/discovery.c
+index a4769ee..400959d 100644
+--- a/libmultipath/discovery.c
++++ b/libmultipath/discovery.c
+@@ -956,6 +956,7 @@ static int
+ sgio_get_vpd (unsigned char * buff, int maxlen, int fd, int pg)
+ {
+ 	int len = DEFAULT_SGIO_LEN;
++	int rlen;
+ 
+ 	if (fd < 0) {
+ 		errno = EBADF;
+@@ -963,12 +964,11 @@ sgio_get_vpd (unsigned char * buff, int maxlen, int fd, int pg)
+ 	}
+ retry:
+ 	if (0 == do_inq(fd, 0, 1, pg, buff, len)) {
+-		len = get_unaligned_be16(&buff[2]) + 4;
+-		if (len >= maxlen)
+-			return len;
+-		if (len > DEFAULT_SGIO_LEN)
+-			goto retry;
+-		return len;
++		rlen = get_unaligned_be16(&buff[2]) + 4;
++		if (rlen <= len || len >= maxlen)
++			return rlen;
++		len = (rlen < maxlen)? rlen : maxlen;
++		goto retry;
+ 	}
+ 	return -1;
+ }
+-- 
+1.8.3.1
+
+

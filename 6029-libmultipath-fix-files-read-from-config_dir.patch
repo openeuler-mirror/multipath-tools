@@ -1,0 +1,41 @@
+From dbd6e0f8ad3d145c73175a6f99eab401408d9d54 Mon Sep 17 00:00:00 2001
+From: Enzo Matsumiya <ematsumiya@suse.de>
+Date: Fri, 7 Feb 2020 11:45:25 -0300
+Subject: [PATCH] libmultipath: fix files read from config_dir
+
+If config_dir contains a file named, for example, "some.conf.backup", this file
+will still be loaded by multipath because process_config_dir()
+(libmultipath/config.c) uses strstr() to check for the ".conf" extension, but
+that doesn't guarantee that ".conf" is at the end of the filename.
+
+This patch will make sure that only files ending in ".conf" are loaded from
+config_dir.
+
+This is to comply with config_dir entry description in man 5 multipath.conf.
+
+Signed-off-by: Enzo Matsumiya <ematsumiya@suse.de>
+---
+ libmultipath/config.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/libmultipath/config.c b/libmultipath/config.c
+index 5af7af5..7c641a3 100644
+--- a/libmultipath/config.c
++++ b/libmultipath/config.c
+@@ -669,8 +669,11 @@ process_config_dir(struct config *conf, vector keywords, char *dir)
+ 	sr.n = n;
+ 	pthread_cleanup_push_cast(free_scandir_result, &sr);
+ 	for (i = 0; i < n; i++) {
+-		if (!strstr(namelist[i]->d_name, ".conf"))
++		char *ext = strrchr(namelist[i]->d_name, '.');
++
++		if (!ext || strcmp(ext, ".conf"))
+ 			continue;
++
+ 		old_hwtable_size = VECTOR_SIZE(conf->hwtable);
+ 		snprintf(path, LINE_MAX, "%s/%s", dir, namelist[i]->d_name);
+ 		path[LINE_MAX-1] = '\0';
+-- 
+1.8.3.1
+
+

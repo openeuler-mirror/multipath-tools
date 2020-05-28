@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.7.7
-Release: 17
+Release: 18
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
@@ -68,6 +68,8 @@ Patch6025: 6025-libmultipath-fix-another-WWID-overflow-in-parse_vpd_.patch
 Patch6026: 6026-libmultipath-fix-possible-WWID-overflow-in-parse_vpd.patch
 Patch6027: 6027-libmultipath-fix-parsing-of-SCSI-name-string-iqn-for.patch
 Patch6028: 6028-libmultipath-fix-double-free-in-pgpolicyfn-error-pat.patch
+Patch6029: 6029-libmultipath-fix-files-read-from-config_dir.patch
+Patch6030: 6030-libmultipath-fix-sgio_get_vpd-looping.patch
 
 
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
@@ -209,6 +211,12 @@ fi
 
 
 %changelog
+* Sat May 28 2020 ethan848 <mingfangsen@huawei.com> - 0.7.7-18
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:backport bugfix from community
+
 * Thu Mar 19 2020 hy-euler <eulerstoragemt@huawei.com> - 0.7.7-17
 - Type:enhancement
 - ID:NA
