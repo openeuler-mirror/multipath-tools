@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.7.7
-Release: 19
+Release: 20
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
@@ -207,6 +207,9 @@ fi
 
 
 %changelog
+* Sun Jul 5 2020 Zhiqiang Liu <lzhq28@mail.ustc.edu.cn> - 0.7.7-20
+- remove useless readme files.
+
 * Tue Jun 30 2020 volcanodragon <linfeilong@huawei.com> - 0.7.7-19
 - Type:bugfix
 - ID:NA
