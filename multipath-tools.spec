@@ -1,72 +1,34 @@
 Name:    multipath-tools
-Version: 0.7.7
-Release: 20
+Version: 0.8.4
+Release: 1
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
 
-# curl "https://git.opensvc.com/?p=multipath-tools/.git;a=snapshot;h=ef6d98b;sf=tgz" -o multipath-tools-ef6d98b.tgz
-Source0: multipath-tools-ef6d98b.tgz
+# curl "https://git.opensvc.com/gitweb.cgi?p=multipath-tools/.git;a=snapshot;h=d4915917655b3d205aa0e339ca13080ed8182d0d;sf=tgz" -o multipath-tools-d491591.tgz
+Source0: multipath-tools-d491591.tgz
 Source1: multipath.conf
-Patch0: 0000-libmultipath-remove-last-of-rbd-code.patch
-Patch1: 0001-libmultipath-fix-detect-alua-corner-case.patch
-Patch2: 0002-multipath-fix-setting-conf-version.patch
-Patch3: 0003-mpathpersist-add-param-alltgpt-option.patch
-Patch4: 0004-libmutipath-remove-unused-IDE-bus-type.patch
-Patch5: 0005-multipathd-add-new-protocol-path-wildcard.patch
-Patch6: 0006-libmultipath-add-protocol-blacklist-option.patch
-Patch7: 0007-libmultipath-remove-_filter_-blacklist-functions.patch
-Patch8: 0008-multipath-tests-change-to-work-with-old-make-version.patch
-Patch9: 0009-multipath-tests-add-blacklist-tests.patch
-Patch10: 0010-mpathpersist-add-missing-param-rk-usage-info.patch
-Patch11: 0011-change-order-of-multipath.rules.patch
-Patch12: 0012-RH-Remove-the-property-blacklist-exception-builtin.patch
-Patch13: 0013-RH-add-mpathconf.patch
-Patch14: 0014-fix-segfault-when-mount-or-umount-VIMS-with-reservation-conflict.patch
-Patch15: 0015-fix-multipathd-resize-when-not-all-paths-size-are-equal.patch
-Patch16: 0016-multipathd-disable-queueing-for-recreated-map-in-uev.patch
-Patch17: 0017-avoid-handling-paths-repeatedly-in-coalesce-paths.patch
-Patch18: 0018-fix-bugs-backported-from-next-branch.patch
-Patch19: 0019-bugfix-fix-change-reservation-key-to-uint8-for-memcmp.patch
-Patch20: 0020-bugfix-ignore-for-clear-mismatch-key.patch
-Patch21: 0021-bugfix-flush-and-sync-before-reboot.patch
-Patch22: 0022-bugfix-RH-remove-local-disk-from-pathvec.patch
-Patch23: 0023-bugfix-lun-expansion-failure-when-there-is-offline-path.patch
-Patch24: 0024-bugfix-some-memory-leaks-issues-in-libmpathpersist.patch
-Patch25: 0025-libmultipath-fix-set_int-error-path.patch
-Patch26: 0026-libmultipath-free-allocated-value-in-set_int.patch
-Patch27: 0027-libmultipath-fix-memory-issue-in-path_latency-prio.patch
-Patch28: 0028-libmultipath-fix-null-dereference-int-alloc_path_group.patch
-Patch29: 0029-multipath-fix-max-array-size-in-print_cmd_valid.patch
-Patch30: 0030-multipathd-minor-fixes.patch
-Patch31: 0031-multipathd-fix-memory-leak-on-error-in-configure.patch
-Patch32: 0032-multipathd-check-for-NULL-udevice-in-cli_add_path.patch
-Patch33: 0033-kpartx-fix-apparent-out-of-bounds-access.patch
-Patch34: 0034-libmultipath-fix-apparent-overflow.patch
-Patch35: 0035-libmultipath-fix-int-overflow-in-sysfs_set_scsi_tmo.patch
-Patch36: 0036-libmultipath-fix-enum-misuse-for-find_multipaths.patch
-Patch37: 0037-libmultipath-fix-possible-NULL-dereference.patch
-Patch38: 0038-fix-syntax-error.patch
-Patch39: 0039-bugfix-change-log-level-to-info-if-alua-is-not-support-by-s.patch
-Patch40: 0040-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
-Patch41: 0041-bugfix-libmultipath-fix-memory-leaks-from-scandir-use.patch
-Patch42: 0042-bugfix-libmultipath-fix-memory-leak-in-disassemble_map.patch
-Patch43: 0043-multipathd-fix-mpp-hwe-handling-when-paths-are-freed.patch
-Patch44: 0044-bugfix-check-close-return-value.patch
-Patch45: 0045-fix-find-multipath-failure.patch
-Patch46: 0046-change-kpartx-file-and-default-bindir.patch
-Patch47: 0047-multipathd-ignore-failed-wwid-recheck.patch
-Patch48: 0048-libmultipath-group_by_prio-fix-signedness-bug.patch
-Patch49: 0049-multipathd-handle-NULL-return-from-genhelp_handler.patch
-Patch50: 0050-libmultipath-fix-parsing-of-VPD-83-type-1-T10-vendor.patch
-Patch51: 0051-libmultipath-Fix-buffer-overflow-in-parse_vpd_pg80.patch
-Patch52: 0052-libmultipath-fix-another-WWID-overflow-in-parse_vpd_.patch
-Patch53: 0053-libmultipath-fix-possible-WWID-overflow-in-parse_vpd.patch
-Patch54: 0054-libmultipath-fix-parsing-of-SCSI-name-string-iqn-for.patch
-Patch55: 0055-libmultipath-fix-double-free-in-pgpolicyfn-error-pat.patch
-Patch56: 0056-libmultipath-fix-files-read-from-config_dir.patch
-Patch57: 0057-libmultipath-fix-sgio_get_vpd-looping.patch
-
+Patch1: 0001-change-order-of-multipath.rules.patch
+Patch2: 0002-libmpathpersist-depend-on-libmultipath.patch
+Patch3: 0003-libmultipath-assign-variable-to-make-gcc-happy.patch
+Patch4: 0004-RH-add-mpathconf.patch
+Patch5: 0005-RH-Remove-the-property-blacklist-exception-builtin.patch
+Patch6: 0006-fix-syntax-error.patch
+Patch7: 0007-fix-multipathd-resize-when-not-all-paths-size-are-equal.patch
+Patch8: 0008-multipathd-disable-queueing-for-recreated-map-in-uev.patch
+Patch9: 0009-avoid-handling-paths-repeatedly-in-coalesce-paths.patch
+Patch10: 0010-fix-bugs-backported-from-next-branch.patch
+Patch11: 0011-bugfix-fix-change-reservation-key-to-uint8-for-memcmp.patch
+Patch12: 0012-bugfix-ignore-for-clear-mismatch-key.patch
+Patch13: 0013-bugfix-flush-and-sync-before-reboot.patch
+Patch14: 0014-bugfix-RH-remove-local-disk-from-pathvec.patch
+Patch15: 0015-bugfix-lun-expansion-failure-when-there-is-offline-path.patch
+Patch16: 0016-bugfix-some-memory-leaks-issues-in-libmpathpersist.patch
+Patch17: 0017-bugfix-change-log-level-to-info-if-alua-is-not-support-by-s.patch
+Patch18: 0018-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
+Patch19: 0019-bugfix-libmultipath-fix-memory-leak-in-disassemble_map.patch
+Patch20: 0020-fix-find-multipath-failure.patch
+Patch21: 0021-change-kpartx-file-and-default-bindir.patch
 
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, git
@@ -123,7 +85,7 @@ Summary: Create device maps from partition tables.
 Reads partition tables and create device maps over partitions segments detected.
 
 %prep
-%autosetup -Sgit -n multipath-tools-ef6d98b
+%autosetup -Sgit -n multipath-tools-d491591
 cp %{SOURCE1} .
 
 %build
@@ -207,6 +169,9 @@ fi
 
 
 %changelog
+* Thu Jul 16 2020 lixiaokeng <lixiaokeng@huawei.com> - 0.8.4-1
+- update to 0.8.4-1
+
 * Sun Jul 5 2020 Zhiqiang Liu <lzhq28@mail.ustc.edu.cn> - 0.7.7-20
 - remove useless readme files.
 

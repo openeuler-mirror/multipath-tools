@@ -21,8 +21,8 @@ index 691b4e1..a2907db 100644
 +        uint64_t uireservation = {0};
 +        int j;
  
- 	conf = get_multipath_config();
- 	conf->verbosity = verbose;
+ 	ret = mpath_get_map(fd, &alias, &mpp);
+ 	if (ret != MPATH_PR_SUCCESS)
 @@ -353,8 +356,15 @@ int mpath_persistent_reserve_out ( int fd, int rq_servact, int rq_scope,
  		}
  	}

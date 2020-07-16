@@ -1,8 +1,8 @@
-From 2c3047d7f6bd8cdd1d92cab32893cecdd5a1dfa9 Mon Sep 17 00:00:00 2001
+From 4ac8e63deadf125004eacbc76859cfa7a46e1e16 Mon Sep 17 00:00:00 2001
 From: root <root@localhost.localdomain>
 Date: Fri, 22 Mar 2019 19:48:35 +0800
 Subject: [PATCH] clear mpp path reference when path is freed, otherwise double
-  free may occur in verify_paths.
+ free may occur in verify_paths.
 
 call stack:
     vecs=vecs@entry=0x557b01d62140, rpvec=rpvec@entry=0x0) at structs_vec.c:521
@@ -17,7 +17,7 @@ call stack:
  3 files changed, 29 insertions(+), 6 deletions(-)
 
 diff --git a/libmultipath/discovery.c b/libmultipath/discovery.c
-index 53fc67a..305d27c 100644
+index c49848e..2458bf5 100644
 --- a/libmultipath/discovery.c
 +++ b/libmultipath/discovery.c
 @@ -112,7 +112,7 @@ transport (int h)
@@ -40,7 +40,7 @@ index 53fc67a..305d27c 100644
  	return 0;
  }
  
-@@ -235,7 +237,7 @@ path_discover (vector pathvec, struct config * conf,
+@@ -241,7 +243,7 @@ path_discover (vector pathvec, struct config * conf,
  			if (err == 1)
  				return 1;
  			if (err == 0)
@@ -49,7 +49,7 @@ index 53fc67a..305d27c 100644
  			return 0;
  		}
  	}
-@@ -243,7 +245,7 @@ path_discover (vector pathvec, struct config * conf,
+@@ -249,7 +251,7 @@ path_discover (vector pathvec, struct config * conf,
  	if (err)
  		return err;
  
@@ -59,23 +59,23 @@ index 53fc67a..305d27c 100644
  }
  
 diff --git a/libmultipath/discovery.h b/libmultipath/discovery.h
-index c4b1d25..0fb0d3a 100644
+index a438b44..ab73493 100644
 --- a/libmultipath/discovery.h
 +++ b/libmultipath/discovery.h
-@@ -53,7 +53,7 @@ ssize_t sysfs_get_vpd (struct udev_device * udev, int pg, unsigned char * buff,
- int sysfs_get_asymmetric_access_state(struct path *pp,
+@@ -56,7 +56,7 @@ int sysfs_get_asymmetric_access_state(struct path *pp,
  				      char *buff, int buflen);
- int get_uid(struct path * pp, int path_state, struct udev_device *udev);
+ int get_uid(struct path * pp, int path_state, struct udev_device *udev,
+ 	    int allow_fallback);
 -int remove_local_path(vector pathvec, struct path *pp);
 +int remove_local_path(vector pathvec, struct path *pp, int isfree);
  
  /*
   * discovery bitmask
 diff --git a/multipathd/main.c b/multipathd/main.c
-index b180f2a..8de0871 100644
+index 41c4258..09ea102 100644
 --- a/multipathd/main.c
 +++ b/multipathd/main.c
-@@ -815,6 +815,21 @@ ev_remove_map (char * devname, char * alias, int minor, struct vectors * vecs)
+@@ -841,6 +841,21 @@ ev_remove_map (char * devname, char * alias, int minor, struct vectors * vecs)
  	return flush_map(mpp, vecs, 0);
  }
  
@@ -97,7 +97,7 @@ index b180f2a..8de0871 100644
  static int
  uev_add_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
  {
-@@ -857,6 +872,7 @@ uev_add_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
+@@ -883,6 +898,7 @@ uev_add_path (struct uevent *uev, struct vectors * vecs, int need_do_map)
  				i = find_slot(vecs->pathvec, (void *)pp);
  				if (i != -1)
  					vector_del_slot(vecs->pathvec, i);
@@ -105,7 +105,7 @@ index b180f2a..8de0871 100644
  				free_path(pp);
  			} else {
  				condlog(0, "%s: failed to reinitialize path",
-@@ -918,8 +934,11 @@ ev_add_path (struct path * pp, struct vectors * vecs, int need_do_map)
+@@ -944,8 +960,11 @@ ev_add_path (struct path * pp, struct vectors * vecs, int need_do_map)
  	int ret;
  
  	/* if pp is local path,remove it and return 0. */
@@ -118,15 +118,15 @@ index b180f2a..8de0871 100644
  
  	/*
  	 * need path UID to go any further
-@@ -950,6 +969,7 @@ rescan:
- 			int i = find_slot(vecs->pathvec, (void *)pp);
- 			if (i != -1)
- 				vector_del_slot(vecs->pathvec, i);
-+			clear_ref_from_mpp(pp, vecs);
- 			free_path(pp);
- 			return 1;
- 		}
-@@ -1182,6 +1202,7 @@ out:
+@@ -960,6 +979,7 @@ ev_add_path (struct path * pp, struct vectors * vecs, int need_do_map)
+ 		int i = find_slot(vecs->pathvec, (void *)pp);
+ 		if (i != -1)
+ 			vector_del_slot(vecs->pathvec, i);
++		clear_ref_from_mpp(pp, vecs);
+ 		free_path(pp);
+ 		return 1;
+ 	}
+@@ -1205,6 +1225,7 @@ out:
  	if ((i = find_slot(vecs->pathvec, (void *)pp)) != -1)
  		vector_del_slot(vecs->pathvec, i);
  
@@ -135,5 +135,5 @@ index b180f2a..8de0871 100644
  
  	return retval;
 -- 
-2.19.1
+1.8.3.1
 
