@@ -16,9 +16,9 @@ index 09c3dcf..1b1cc55 100644
 --- a/libmultipath/configure.c
 +++ b/libmultipath/configure.c
 @@ -1021,6 +1021,7 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
- 	}
+ 
  	vector_foreach_slot (pathvec, pp1, k) {
- 		int invalid = 0;
+ 		int invalid;
 +               condlog(3, "%s %s: start coalesce", pp1->dev, pp1->dev_t);
  		/* skip this path for some reason */
  
@@ -56,9 +56,9 @@ index ae847d6..99435c1 100644
  		pp->tpgs = TPGS_UNDEF;
  		pp->priority = PRIO_UNDEF;
 +		pp->handled = 0;
+ 		pp->checkint = CHECKINT_UNDEF;
  		checker_clear(&pp->checker);
  		dm_path_to_gen(pp)->ops = &dm_gen_path_ops;
- 		pp->hwe = vector_alloc();
 diff --git a/libmultipath/structs.h b/libmultipath/structs.h
 index 0a2623a..d667cb7 100644
 --- a/libmultipath/structs.h
@@ -70,7 +70,7 @@ index 0a2623a..d667cb7 100644
 +	int handled;
  	int initialized;
  	int retriggers;
- 	int wwid_changed;
+ 	unsigned int path_failures;
 diff --git a/libmultipath/structs_vec.c b/libmultipath/structs_vec.c
 index f87d69d..fba38c0 100644
 --- a/libmultipath/structs_vec.c

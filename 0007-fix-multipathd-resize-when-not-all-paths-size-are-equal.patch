@@ -1,5 +1,5 @@
---- multipath-tools-130222-patched/multipathd/cli_handlers.c	2017-10-12 19:19:08.000000000 +0800
-+++ multipath-tools-130222-patched1/multipathd/cli_handlers.c	2017-10-17 14:43:43.000000000 +0800
+--- a/multipathd/cli_handlers.c
++++ b/multipathd/cli_handlers.c
 @@ -593,9 +593,10 @@
  	char * mapname = get_keyparam(v, MAP);
  	struct multipath *mpp;

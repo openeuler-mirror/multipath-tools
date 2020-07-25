@@ -37,7 +37,7 @@ index 620f507..1558c4e 100644
  
  				if (!pp)
 @@ -322,8 +325,10 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
- 						WWID_SIZE - 1);
+ 						WWID_SIZE);
  				}
  				/* Only call this in multipath client mode */
 -				if (!is_daemon && store_path(pathvec, pp))
