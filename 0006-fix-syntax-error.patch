@@ -8,18 +8,18 @@ Subject: [PATCH] fix syntax error
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/Makefile.inc b/Makefile.inc
-index 5ff69a3..3744aa4 100644
+index d4d1e0d..158e7b6 100644
 --- a/Makefile.inc
 +++ b/Makefile.inc
-@@ -40,7 +40,7 @@ endif
- 
- ifndef SYSTEMD
- 	ifeq ($(shell systemctl --version > /dev/null 2>&1 && echo 1), 1)
--		SYSTEMD = $(shell systemctl --version 2> /dev/null |  sed -n 's/systemd \([0-9]*\)/\1/p')
-+		SYSTEMD = $(shell systemctl --version 2> /dev/null |  sed -n 's/systemd\([0-9]*\)/\1/p' | awk '{print $$1}')
+@@ -41,7 +41,7 @@ ifndef SYSTEMD
+ 	else
+ 		ifeq ($(shell systemctl --version >/dev/null 2>&1 && echo 1), 1)
+ 			SYSTEMD = $(shell systemctl --version 2> /dev/null | \
+-				sed -n 's/systemd \([0-9]*\).*/\1/p')
++				sed -n 's/systemd\([0-9]*\).*/\1/p' | awk '{print $$1}')
+ 		endif
  	endif
  endif
- 
 -- 
-2.19.1
+1.8.3.1
 
