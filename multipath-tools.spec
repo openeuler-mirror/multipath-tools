@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.8.4
-Release: 1
+Release: 2
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
@@ -29,6 +29,10 @@ Patch18: 0018-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
 Patch19: 0019-bugfix-libmultipath-fix-memory-leak-in-disassemble_map.patch
 Patch20: 0020-fix-find-multipath-failure.patch
 Patch21: 0021-change-kpartx-file-and-default-bindir.patch
+Patch22:0022-master-libmultipath-fix-use-after-free-when-iscsi-lo.patch
+Patch23:0023-libmultipath-warn-if-freeing-path-that-holds-mpp-hwe.patch
+Patch24:0024-libmultipath-warn-about-NULL-value-of-mpp-hwe.patch
+Patch25:0025-libmultipath-fix-mpp-hwe-handling-in-sync_paths.patch
 
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, git
@@ -169,6 +173,12 @@ fi
 
 
 %changelog
+* Tue Sep 01 2020 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-2
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:fix use after free in select_pgfailback
+
 * Thu Jul 16 2020 lixiaokeng <lixiaokeng@huawei.com> - 0.8.4-1
 - update to 0.8.4-1
 
