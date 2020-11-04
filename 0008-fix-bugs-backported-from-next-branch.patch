@@ -1,4 +1,4 @@
-From 96ebdd776e676d24ddb5c6c877e2e13ece1717b3 Mon Sep 17 00:00:00 2001
+From a4485f642dc3f07f9f61245f4a5de559d3193649 Mon Sep 17 00:00:00 2001
 From: sunguoshuai <sunguoshuai@huawei.com>
 Date: Wed, 23 Jan 2019 01:57:33 -0500
 Subject: [PATCH] fix bugs backported from next branch
@@ -118,10 +118,10 @@ index 88cac5f..075751c 100644
  
  int getprio (struct path * pp, __attribute__((unused)) char *args,
 diff --git a/libmultipath/structs_vec.c b/libmultipath/structs_vec.c
-index 38cf1e9..790143d 100644
+index 8895fa7..34ee661 100644
 --- a/libmultipath/structs_vec.c
 +++ b/libmultipath/structs_vec.c
-@@ -34,8 +34,10 @@ int update_mpp_paths(struct multipath *mpp, vector pathvec)
+@@ -35,8 +35,10 @@ int update_mpp_paths(struct multipath *mpp, vector pathvec)
  		return 0;
  
  	if (!mpp->paths &&
@@ -134,10 +134,10 @@ index 38cf1e9..790143d 100644
  	vector_foreach_slot (mpp->pg, pgp, i) {
  		vector_foreach_slot (pgp->paths, pp, j) {
 diff --git a/multipathd/main.c b/multipathd/main.c
-index 23fb9d4..ef14750 100644
+index a4abbb2..12459ab 100644
 --- a/multipathd/main.c
 +++ b/multipathd/main.c
-@@ -1665,6 +1665,11 @@ enable_group(struct path * pp)
+@@ -1725,6 +1725,11 @@ enable_group(struct path * pp)
  
  	pgp = VECTOR_SLOT(pp->mpp->pg, pp->pgindex - 1);
  

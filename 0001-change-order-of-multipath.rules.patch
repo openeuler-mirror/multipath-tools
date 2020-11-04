@@ -1,4 +1,4 @@
-From 4340aca696857c1077b00ff6bdc0454a07929aad Mon Sep 17 00:00:00 2001
+From afc8dd3d344cd23f7ea861fa52b2d83bf0c3f036 Mon Sep 17 00:00:00 2001
 From: Benjamin Marzinski <bmarzins@redhat.com>
 Date: Fri, 15 May 2015 18:14:09 -0500
 Subject: [PATCH] change order of multipath.rules

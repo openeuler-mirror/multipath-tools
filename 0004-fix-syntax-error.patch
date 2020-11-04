@@ -1,4 +1,4 @@
-From 8e4c5a421ee351fe667b0bf8b99e691ab5c9c13b Mon Sep 17 00:00:00 2001
+From c220115428e3de8f189afccadf6dc823825429fa Mon Sep 17 00:00:00 2001
 From: wangjufeng <wangjufeng@huawei.com>
 Date: Fri, 1 Nov 2019 16:48:49 +0800
 Subject: [PATCH] fix syntax error
@@ -8,7 +8,7 @@ Subject: [PATCH] fix syntax error
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/Makefile.inc b/Makefile.inc
-index d4d1e0d..158e7b6 100644
+index e05f3a9..f4d895d 100644
 --- a/Makefile.inc
 +++ b/Makefile.inc
 @@ -41,7 +41,7 @@ ifndef SYSTEMD

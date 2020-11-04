@@ -1,38 +1,29 @@
 Name:    multipath-tools
-Version: 0.8.4
-Release: 4
+Version: 0.8.5
+Release: 1
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
 
-# curl "https://git.opensvc.com/gitweb.cgi?p=multipath-tools/.git;a=snapshot;h=d4915917655b3d205aa0e339ca13080ed8182d0d;sf=tgz" -o multipath-tools-d491591.tgz
-Source0: multipath-tools-d491591.tgz
+# curl https://github.com/opensvc/multipath-tools/archive/0.8.5.tar.gz -o multipath-tools-0.8.5.tgz
+Source0: multipath-tools-0.8.5.tgz
 Source1: multipath.conf
-Patch1: 0001-change-order-of-multipath.rules.patch
-Patch2: 0002-libmpathpersist-depend-on-libmultipath.patch
-Patch3: 0003-libmultipath-assign-variable-to-make-gcc-happy.patch
-Patch4: 0004-RH-add-mpathconf.patch
-Patch5: 0005-RH-Remove-the-property-blacklist-exception-builtin.patch
-Patch6: 0006-fix-syntax-error.patch
-Patch7: 0007-fix-multipathd-resize-when-not-all-paths-size-are-equal.patch
-Patch8: 0008-multipathd-disable-queueing-for-recreated-map-in-uev.patch
-Patch9: 0009-avoid-handling-paths-repeatedly-in-coalesce-paths.patch
-Patch10: 0010-fix-bugs-backported-from-next-branch.patch
-Patch11: 0011-bugfix-fix-change-reservation-key-to-uint8-for-memcmp.patch
-Patch12: 0012-bugfix-ignore-for-clear-mismatch-key.patch
-Patch13: 0013-bugfix-flush-and-sync-before-reboot.patch
-Patch14: 0014-bugfix-RH-remove-local-disk-from-pathvec.patch
-Patch15: 0015-bugfix-lun-expansion-failure-when-there-is-offline-path.patch
-Patch16: 0016-bugfix-change-log-level-to-info-if-alua-is-not-support-by-s.patch
-Patch17: 0017-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
-Patch18: 0018-bugfix-libmultipath-fix-memory-leak-in-disassemble_map.patch
-Patch19: 0019-fix-find-multipath-failure.patch
-Patch20: 0020-change-kpartx-file-and-default-bindir.patch
-Patch21: 0021-master-libmultipath-fix-use-after-free-when-iscsi-lo.patch
-Patch22: 0022-libmultipath-warn-if-freeing-path-that-holds-mpp-hwe.patch
-Patch23: 0023-libmultipath-warn-about-NULL-value-of-mpp-hwe.patch
-Patch24: 0024-libmultipath-fix-mpp-hwe-handling-in-sync_paths.patch
-Patch25: 0025-fix-boolean-value-with-json-c-0.14.patch
+Patch1:  0001-change-order-of-multipath.rules.patch
+Patch2:  0002-RH-add-mpathconf.patch
+Patch3:  0003-RH-Remove-the-property-blacklist-exception-builtin.patch
+Patch4:  0004-fix-syntax-error.patch
+Patch5:  0005-fix-multipathd-resize-when-not-all-paths-size-are-equal.patch
+Patch6:  0006-avoid-handling-paths-repeatedly-in-coalesce-paths.patch
+Patch7:  0007-bugfix-lun-expansion-failure-when-there-is-offline-path.patch
+Patch8:  0008-fix-bugs-backported-from-next-branch.patch
+Patch9:  0009-bugfix-change-reservation-key-to-uint8-for-memcmp.patch
+Patch10: 0010-ignore-for-clear-mismatch-key.patch
+Patch11: 0011-bugfix-flush-and-sync-before-reboot.patch
+Patch12: 0012-change-log-level-to-info-if-alua-is-not-support-by-s.patch
+Patch13: 0013-fix-find-multipath-failure.patch
+Patch14: 0014-kpartx-change-kpartx-file-and-default-bindir.patch
+Patch15: 0015-bugfix-RH-remove-local-disk-from-pathvec.patch
+Patch16: 0016-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch 
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, git
 BuildRequires:    systemd-units, systemd-devel, json-c-devel, perl-interpreter, pkgconfig
@@ -88,7 +79,7 @@ Summary: Create device maps from partition tables.
 Reads partition tables and create device maps over partitions segments detected.
 
 %prep
-%autosetup -Sgit -n multipath-tools-d491591
+%autosetup -Sgit -n multipath-tools-0.8.5
 cp %{SOURCE1} .
 
 %build
@@ -127,7 +118,7 @@ fi
 
 
 %files
-%doc README README.alua multipath.conf
+%doc README.md README.alua multipath.conf
 %license LICENSES/GPL-2.0 LICENSES/LGPL-2.0 LICENSES/GPL-3.0
 %{_unitdir}/*
         /usr/sbin/multipath
@@ -147,7 +138,7 @@ fi
 
 
 %files devel
-%doc README
+%doc README.md
         %{_includedir}/*.h
 %dir    %{_includedir}/libdmmp
         %{_includedir}/libdmmp/*
@@ -163,7 +154,7 @@ fi
 
 %files -n kpartx
 %license LICENSES/GPL-2.0
-%doc README
+%doc README.md
 /usr/sbin/kpartx
 /usr/lib/udev/kpartx_id
 %config /usr/lib/udev/rules.d/11-dm-parts.rules
@@ -172,6 +163,9 @@ fi
 
 
 %changelog
+* Sat Jan 30 2020 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-1
+- update to 0.8.5
+
 * Fri Oct 16 2020 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-4
 - Type:bugfix
 - ID:NA
