@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.8.4
-Release: 4
+Release: 5
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
@@ -37,7 +37,8 @@ Patch25: 0025-fix-boolean-value-with-json-c-0.14.patch
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, git
 BuildRequires:    systemd-units, systemd-devel, json-c-devel, perl-interpreter, pkgconfig
-Requires:         userspace-rcu, json-c, device-mapper >= 1.02.96
+Requires:         json-c, device-mapper >= 1.02.96
+Requires:	  userspace-rcu >= 0.12.1
 Requires:         kpartx = %{version}-%{release}
 Requires(post):   systemd-units
 Requires(preun):  systemd-units
@@ -173,6 +174,12 @@ fi
 
 
 %changelog
+* Tue Nov 10 2020 Ming Yang<yangming73@huawei.com> - 0.8.4-5
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:update userspace_rcu package requirement to version 0.12.1 or later.
+
 * Tue Oct 27 2020 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-4
 - Type:bugfix
 - ID:NA
