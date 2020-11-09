@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.8.4
-Release: 4
+Release: 5
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
@@ -39,6 +39,7 @@ BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-deve
 BuildRequires:    systemd-units, systemd-devel, json-c-devel, perl-interpreter, pkgconfig
 Requires:         userspace-rcu, json-c, device-mapper >= 1.02.96
 Requires:         kpartx = %{version}-%{release}
+Requires:         %{name}-help = %{version}-%{release}
 Requires(post):   systemd-units
 Requires(preun):  systemd-units
 Requires(postun): systemd-units
@@ -173,6 +174,9 @@ fi
 
 
 %changelog
+* Sat Nov 07 2020 Ge Wang<wangge20@huawei.com> - 0.8.4-5
+- Set help package as multipath-tools package's install require
+
 * Tue Oct 27 2020 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-4
 - Type:bugfix
 - ID:NA
