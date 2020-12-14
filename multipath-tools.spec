@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.8.4
-Release: 5
+Release: 6
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPLv2-or-later and LGPLv2+
 URL:     http://christophe.varoqui.free.fr/
@@ -84,7 +84,8 @@ Obsoletes: device-mapper-multipath-help
 This contains man files for the using of multipath-tools.
 
 %package -n kpartx
-Summary: Create device maps from partition tables.
+Summary:  Create device maps from partition tables.
+Recommends: %{name}-help = %{version}-%{release}
 
 %description -n kpartx
 Reads partition tables and create device maps over partitions segments detected.
@@ -174,6 +175,9 @@ fi
 
 
 %changelog
+* Mon Dec 14 2020 Lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-6
+- Set help packages as kpartx package's install recommends
+
 * Sat Nov 07 2020 Ge Wang<wangge20@huawei.com> - 0.8.4-5
 - Set help package as multipath-tools package's install require
 
