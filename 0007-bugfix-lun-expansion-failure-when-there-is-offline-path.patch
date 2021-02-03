@@ -1,8 +1,18 @@
+From 5ebbef9c1f3ae72efe7f9582532a346227a0a1a3 Mon Sep 17 00:00:00 2001
+From: renmingshuai <renmingshuai@huawei.com>
+Date: Thu, 28 Jan 2021 22:26:58 +0800
+Subject: [PATCH] fix lun expansion failure when there is offline path
+
+---
+ libmultipath/configure.c   | 20 +++++++++++++++-----
+ libmultipath/structs_vec.c |  5 +++--
+ 2 files changed, 18 insertions(+), 7 deletions(-)
+
 diff --git a/libmultipath/configure.c b/libmultipath/configure.c
-index 1b1cc55..f66bd5b 100644
+index ff65c1b..e616da2 100644
 --- a/libmultipath/configure.c
 +++ b/libmultipath/configure.c
-@@ -1054,11 +1054,18 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
+@@ -1203,11 +1203,18 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
  			orphan_path(pp1, "only one path");
  			continue;
  		}
@@ -26,7 +36,7 @@ index 1b1cc55..f66bd5b 100644
  
  
  		/*
-@@ -1086,6 +1093,9 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
+@@ -1235,6 +1242,9 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
  			if (strcmp(pp1->wwid, pp2->wwid))
  				continue;
  
@@ -37,18 +47,21 @@ index 1b1cc55..f66bd5b 100644
  				mpp->size = pp2->size;
  
 diff --git a/libmultipath/structs_vec.c b/libmultipath/structs_vec.c
-index d85eb5f..6c42824 100644
+index 8676081..0300add 100644
 --- a/libmultipath/structs_vec.c
 +++ b/libmultipath/structs_vec.c
-@@ -394,8 +394,9 @@ int verify_paths(struct multipath *mpp, struct vectors *vecs)
+@@ -742,8 +742,9 @@ int verify_paths(struct multipath *mpp)
  		/*
  		 * see if path is in sysfs
  		 */
--		if (sysfs_attr_get_value(pp->udev, "dev",
+-		if (!pp->udev || sysfs_attr_get_value(pp->udev, "dev",
 -					 pp->dev_t, BLK_DEV_SIZE) < 0) {
-+		if ((sysfs_attr_get_value(pp->udev, "dev",
++		if (!pp->udev || (sysfs_attr_get_value(pp->udev, "dev",
 +					 pp->dev_t, BLK_DEV_SIZE) < 0) ||
 +			(pp->state == PATH_DOWN && pp->size != mpp->size)) {
  			if (pp->state != PATH_DOWN) {
  				condlog(1, "%s: removing valid path %s in state %d",
  					mpp->alias, pp->dev, pp->state);
+-- 
+1.8.3.1
+

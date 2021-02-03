@@ -1,8 +1,6 @@
-diff --git a/libmultipath/util.c b/libmultipath/util.c
-index 8d8fcc8..3c284b7 100644
 --- a/libmultipath/util.c
 +++ b/libmultipath/util.c
-@@ -463,5 +463,12 @@ int safe_write(int fd, const void *buf, size_t count)
+@@ -368,6 +368,13 @@ int safe_write(int fd, const void *buf, size_t count)
  		count -= r;
  		buf = (const char *)buf + r;
  	}
@@ -15,3 +13,7 @@ index 8d8fcc8..3c284b7 100644
 +
  	return 0;
  }
+ 
+-- 
+1.8.3.1
+

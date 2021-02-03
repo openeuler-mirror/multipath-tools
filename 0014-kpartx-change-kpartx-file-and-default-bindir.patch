@@ -1,4 +1,4 @@
-From 768883da9969b76aade3e16d4a5b8cec47d6f30e Mon Sep 17 00:00:00 2001
+From 57e2c5ddceb461c00bc42c8cb2fd45665838e6d1 Mon Sep 17 00:00:00 2001
 From: wangjufeng <wangjufeng@huawei.com>
 Date: Fri, 10 Jan 2020 11:57:08 +0800
 Subject: [PATCH] kpartx: change kpartx file and default bindir
@@ -13,10 +13,10 @@ Signed-off-by: wangjufeng <wangjufeng@huawei.com>
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/Makefile.inc b/Makefile.inc
-index af2f5ba..e6466ee 100644
+index f4d895d..0b083eb 100644
 --- a/Makefile.inc
 +++ b/Makefile.inc
-@@ -49,7 +49,7 @@ ifndef SYSTEMDPATH
+@@ -51,7 +51,7 @@ ifndef SYSTEMDPATH
  endif
  
  prefix		=
@@ -26,10 +26,10 @@ index af2f5ba..e6466ee 100644
  bindir		= $(exec_prefix)/sbin
  libudevdir	= $(prefix)/$(SYSTEMDPATH)/udev
 diff --git a/kpartx/kpartx.rules b/kpartx/kpartx.rules
-index 8f99049..8a3a171 100644
+index d7527d7..0e0d70d 100644
 --- a/kpartx/kpartx.rules
 +++ b/kpartx/kpartx.rules
-@@ -32,6 +32,6 @@ LABEL="mpath_kpartx_end"
+@@ -36,6 +36,6 @@ LABEL="mpath_kpartx_end"
  GOTO="kpartx_end"
  
  LABEL="run_kpartx"

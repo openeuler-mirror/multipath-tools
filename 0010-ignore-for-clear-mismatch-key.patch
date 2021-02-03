@@ -1,4 +1,4 @@
-From ed732bcdc90162993e82df1bec8642aabb7a64a5 Mon Sep 17 00:00:00 2001
+From 70ff8a11623a0a0e7677c597b5fb1846149d7de3 Mon Sep 17 00:00:00 2001
 From: sunguoshuai <sunguoshuai@huawei.com>
 Date: Wed, 23 Jan 2019 02:38:00 -0500
 Subject: [PATCH] ignore for clear mismatch key
@@ -9,10 +9,10 @@ reason:ignore for clear mismatch key
  1 file changed, 11 insertions(+), 6 deletions(-)
 
 diff --git a/libmpathpersist/mpath_persist.c b/libmpathpersist/mpath_persist.c
-index f9c3be9..027d006 100644
+index 557d582..5a8c69d 100644
 --- a/libmpathpersist/mpath_persist.c
 +++ b/libmpathpersist/mpath_persist.c
-@@ -309,7 +309,8 @@ int __mpath_persistent_reserve_out ( int fd, int rq_servact, int rq_scope,
+@@ -266,7 +266,8 @@ int __mpath_persistent_reserve_out ( int fd, int rq_servact, int rq_scope,
  	if (mpp->prkey_source == PRKEY_SOURCE_FILE && prkey &&
  	    ((!get_be64(mpp->reservation_key) &&
  	      rq_servact == MPATH_PROUT_REG_SA) ||
@@ -22,7 +22,7 @@ index f9c3be9..027d006 100644
  		memcpy(&mpp->reservation_key, paramp->sa_key, 8);
  		if (update_prkey_flags(alias, get_be64(mpp->reservation_key),
  				       paramp->sa_flags)) {
-@@ -326,12 +327,16 @@ int __mpath_persistent_reserve_out ( int fd, int rq_servact, int rq_scope,
+@@ -283,12 +284,16 @@ int __mpath_persistent_reserve_out ( int fd, int rq_servact, int rq_scope,
                  uireservation >>= 8;
          }
   

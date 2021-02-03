@@ -1,23 +1,23 @@
-From a1461cbfa7ea2bccef20eb2f5275648452ee050c Mon Sep 17 00:00:00 2001
+From a448fe41073d613764b8988d1e22ee0c6e7e3f92 Mon Sep 17 00:00:00 2001
 From: chenminhua <chenminhua1@huawei.com>
 Date: Mon, 2 Apr 2018 04:01:04 -0400
-Subject: [PATCH] 1hostos-patch-upgrade:0330 hotpatch modify
+Subject: [PATCH] remove local path
 
 [Changelog]:add upgrade path
 [Author]:chenminhua
 ---
- libmultipath/discovery.c | 124 +++++++++++++++++++++++++++++++++++++++++++++--
+ libmultipath/discovery.c | 128 ++++++++++++++++++++++++++++++++++++++++++++---
  libmultipath/discovery.h |   1 +
  multipathd/main.c        |   4 ++
- 3 files changed, 124 insertions(+), 5 deletions(-)
+ 3 files changed, 127 insertions(+), 6 deletions(-)
 
 diff --git a/libmultipath/discovery.c b/libmultipath/discovery.c
-index ee3290c..c49848e 100644
+index c2e1754..24e9b50 100644
 --- a/libmultipath/discovery.c
 +++ b/libmultipath/discovery.c
-@@ -34,6 +34,103 @@
- #include "prioritizers/alua_rtpg.h"
- #include "foreign.h"
+@@ -36,6 +36,103 @@
+ #include "configure.h"
+ #include "print.h"
  
 +const char *conf_file = "/etc/multipath_private.conf";
 +static int conf_file_parsed = 0;
@@ -119,55 +119,61 @@ index ee3290c..c49848e 100644
  struct vpd_vendor_page vpd_vendor_pages[VPD_VP_ARRAY_SIZE] = {
  	[VPD_VP_UNDEF]	= { 0x00, "undef" },
  	[VPD_VP_HP3PAR]	= { 0xc0, "hp3par" },
-@@ -124,6 +221,7 @@ path_discover (vector pathvec, struct config * conf,
+@@ -127,22 +224,35 @@ path_discover (vector pathvec, struct config * conf,
  {
- 	struct path * pp;
- 	const char * devname;
+ 	struct path *pp;
+ 	char devt[BLK_DEV_SIZE];
 +	int err = 1;
+ 	dev_t devnum = udev_device_get_devnum(udevice);
  
- 	devname = udev_device_get_sysname(udevice);
- 	if (!devname)
-@@ -137,12 +235,22 @@ path_discover (vector pathvec, struct config * conf,
- 		snprintf(devt, BLK_DEV_SIZE, "%d:%d",
- 			 major(devnum), minor(devnum));
- 		pp = find_path_by_devt(pathvec, devt);
--		if (!pp)
--			return store_pathinfo(pathvec, conf,
--					      udevice, flag | DI_BLACKLIST,
--					      NULL);
-+		if (!pp) {
-+			err = store_pathinfo(pathvec, conf,
-+						udevice, flag, &pp);
-+			if (err == 1)
-+				return 1;
-+			if (err == 0)
-+				remove_local_path(pathvec, pp);
-+			return 0;
-+		}
- 	}
--	return pathinfo(pp, conf, flag);
-+	err = pathinfo(pp, conf, flag);
-+	if (err)
+ 	snprintf(devt, BLK_DEV_SIZE, "%d:%d",
+ 		 major(devnum), minor(devnum));
+ 	pp = find_path_by_devt(pathvec, devt);
+-	if (!pp)
+-		return store_pathinfo(pathvec, conf,
+-				      udevice, flag | DI_BLACKLIST,
+-				      NULL);
+-	else
++	if (!pp) {
++		err = store_pathinfo(pathvec, conf,
++			      udevice, flag | DI_BLACKLIST,
++			      &pp);
++		if (err == 1)
++			return 1;
++		if (err == 0)
++			remove_local_path(pathvec, pp);
++		return 0;
++	}
++	else {
+ 		/*
+ 		 * Don't use DI_BLACKLIST on paths already in pathvec. We rely
+ 		 * on the caller to pre-populate the pathvec with valid paths
+ 		 * only.
+ 		 */
+-		return pathinfo(pp, conf, flag);
++		err = pathinfo(pp, conf, flag);
++		if (err)
++			return err;
++		
++		remove_local_path(pathvec, pp);
 +		return err;
-+
-+	remove_local_path(pathvec, pp);
-+	return err;
++	}
  }
  
  static void cleanup_udev_enumerate_ptr(void *arg)
-@@ -2091,6 +2199,12 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
- 
+@@ -2138,6 +2248,12 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
  		if (rc != PATHINFO_OK)
  			return rc;
-+
+ 
 +		/* free local device */
 +		if (transport(pp->sg_id.host_no)) {
 +			condlog(3, "%s is a local device", pp->dev);
 +			return 0;
 +		}
- 	}
- 
- 	if (mask & DI_BLACKLIST && mask & DI_SYSFS) {
++
+ 		if (pp->bus == SYSFS_BUS_SCSI &&
+ 		    pp->sg_id.proto_id == SCSI_PROTOCOL_USB &&
+ 		    !conf->allow_usb_devices) {
 diff --git a/libmultipath/discovery.h b/libmultipath/discovery.h
 index 6444887..a438b44 100644
 --- a/libmultipath/discovery.h
@@ -181,10 +187,10 @@ index 6444887..a438b44 100644
  /*
   * discovery bitmask
 diff --git a/multipathd/main.c b/multipathd/main.c
-index ef14750..41c4258 100644
+index 12459ab..0b572ee 100644
 --- a/multipathd/main.c
 +++ b/multipathd/main.c
-@@ -943,6 +943,10 @@ ev_add_path (struct path * pp, struct vectors * vecs, int need_do_map)
+@@ -964,6 +964,10 @@ ev_add_path (struct path * pp, struct vectors * vecs, int need_do_map)
  	int start_waiter = 0;
  	int ret;
  
