@@ -1,8 +1,8 @@
 Name:    multipath-tools
 Version: 0.8.5
-Release: 1
+Release: 2
 Summary: Tools to manage multipath devices with the device-mapper
-License: GPLv2-or-later and LGPLv2+
+License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
 
 # curl https://github.com/opensvc/multipath-tools/archive/0.8.5.tar.gz -o multipath-tools-0.8.5.tgz
@@ -163,6 +163,12 @@ fi
 
 
 %changelog
+* Tue Jul 20 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-2
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:add check remove_local_disk before transport in pathinfo
+
 * Sat Jan 30 2020 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-1
 - update to 0.8.5
 
