@@ -161,7 +161,7 @@ index ee3290c..c49848e 100644
  			return rc;
 +
 +		/* free local device */
-+		if (transport(pp->sg_id.host_no)) {
++		if (get_should_remove_local_disk() && transport(pp->sg_id.host_no)) {
 +			condlog(3, "%s is a local device", pp->dev);
 +			return 0;
 +		}
