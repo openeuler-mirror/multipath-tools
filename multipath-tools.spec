@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.8.5
-Release: 2
+Release: 3
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -25,7 +25,7 @@ Patch14: 0014-kpartx-change-kpartx-file-and-default-bindir.patch
 Patch15: 0015-bugfix-RH-remove-local-disk-from-pathvec.patch
 Patch16: 0016-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch 
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
-BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, git
+BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, 
 BuildRequires:    systemd-units, systemd-devel, json-c-devel, perl-interpreter, pkgconfig
 Requires:         userspace-rcu, json-c, device-mapper >= 1.02.96
 Requires:         kpartx = %{version}-%{release}
@@ -79,7 +79,7 @@ Summary: Create device maps from partition tables.
 Reads partition tables and create device maps over partitions segments detected.
 
 %prep
-%autosetup -Sgit -n multipath-tools-0.8.5
+%autosetup -n multipath-tools-0.8.5 -p1
 cp %{SOURCE1} .
 
 %build
@@ -163,6 +163,9 @@ fi
 
 
 %changelog
+* Fri Jul 30 2021 chenyanpanHW <chenyanpan@huawei.com> - 0.8.5-3
+- DESC: delete -Sgit from %autosetup, and delete BuildRequires git
+
 * Tue Jul 20 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-2
 - Type:bugfix
 - ID:NA
