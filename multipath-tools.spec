@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.8.4
-Release: 6
+Release: 8
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -38,8 +38,9 @@ BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >=
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, git
 BuildRequires:    systemd-units, systemd-devel, json-c-devel, perl-interpreter, pkgconfig
 Requires:         json-c, device-mapper >= 1.02.96
-Requires:	  userspace-rcu >= 0.12.1
+Requires:         userspace-rcu >= 0.12.1
 Requires:         kpartx = %{version}-%{release}
+Recommends:       %{name}-help = %{version}-%{release}
 Requires(post):   systemd-units
 Requires(preun):  systemd-units
 Requires(postun): systemd-units
@@ -85,6 +86,7 @@ This contains man files for the using of multipath-tools.
 
 %package -n kpartx
 Summary: Create device maps from partition tables.
+Recommends:%{name}-help = %{version}-%{release}
 
 %description -n kpartx
 Reads partition tables and create device maps over partitions segments detected.
@@ -174,6 +176,18 @@ fi
 
 
 %changelog
+* Thu Aug 5 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-8
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:modify and sync release
+
+* Thu Aug 5 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-7
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:add help packages as install recommends
+
 * Tue Jul 20 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-6
 - Type:bugfix
 - ID:NA
