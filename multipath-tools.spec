@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.8.5
-Release: 3
+Release: 4
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -23,7 +23,9 @@ Patch12: 0012-change-log-level-to-info-if-alua-is-not-support-by-s.patch
 Patch13: 0013-fix-find-multipath-failure.patch
 Patch14: 0014-kpartx-change-kpartx-file-and-default-bindir.patch
 Patch15: 0015-bugfix-RH-remove-local-disk-from-pathvec.patch
-Patch16: 0016-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch 
+Patch16: 0016-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
+Patch17: 0017-libmultipath-fix-compile-error.patch 
+
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, 
 BuildRequires:    systemd-units, systemd-devel, json-c-devel, perl-interpreter, pkgconfig
@@ -163,6 +165,12 @@ fi
 
 
 %changelog
+* Wed Aug 11 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-4
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:fix compile error
+
 * Fri Jul 30 2021 chenyanpanHW <chenyanpan@huawei.com> - 0.8.5-3
 - DESC: delete -Sgit from %autosetup, and delete BuildRequires git
 
