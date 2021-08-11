@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.8.4
-Release: 8
+Release: 9
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -34,6 +34,7 @@ Patch23: 0023-libmultipath-warn-about-NULL-value-of-mpp-hwe.patch
 Patch24: 0024-libmultipath-fix-mpp-hwe-handling-in-sync_paths.patch
 Patch25: 0025-fix-boolean-value-with-json-c-0.14.patch
 
+BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, git
 BuildRequires:    systemd-units, systemd-devel, json-c-devel, perl-interpreter, pkgconfig
@@ -113,6 +114,9 @@ make install \
 install -d %{buildroot}/etc/multipath
 rm -rf %{buildroot}/%{_initrddir}
 
+%check
+make test
+
 %post
 /sbin/ldconfig
 
@@ -176,6 +180,12 @@ fi
 
 
 %changelog
+* Wed Aug 11 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-9
+- Type:testcode
+- ID:NA
+- SUG:NA
+- DESC:add make test
+
 * Thu Aug 5 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-8
 - Type:bugfix
 - ID:NA
