@@ -1,0 +1,39 @@
+From 8cce6eb0d83151c97c18094e380d38b6085ff282 Mon Sep 17 00:00:00 2001
+From: lixiaokeng <lixiaokeng@huawei.com>
+Date: Wed, 11 Aug 2021 19:42:04 +0800
+Subject: [PATCH] libmultipath: fix compile error
+
+There is an error when complie with glibc-2.34:
+comparison of integer expressions of different signedness:
+'size_t' {aka 'long unsigned int'} and 'long int'
+[-Werror=sign-compare]
+
+Explicit convert PTHREAD_STACK_MIN to size_t to fix it.
+
+Signed-off-by: Lixiaokeng <lixiaokeng@huawei.com>
+---
+ libmultipath/util.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/libmultipath/util.c b/libmultipath/util.c
+index 1748eaf..4d20cc1 100644
+--- a/libmultipath/util.c
++++ b/libmultipath/util.c
+@@ -220,11 +220,12 @@ void
+ setup_thread_attr(pthread_attr_t *attr, size_t stacksize, int detached)
+ {
+ 	int ret;
++	size_t pthread_stack_min = PTHREAD_STACK_MIN;
+ 
+ 	ret = pthread_attr_init(attr);
+ 	assert(ret == 0);
+-	if (stacksize < PTHREAD_STACK_MIN)
+-		stacksize = PTHREAD_STACK_MIN;
++	if (stacksize < pthread_stack_min)
++		stacksize = pthread_stack_min;
+ 	ret = pthread_attr_setstacksize(attr, stacksize);
+ 	assert(ret == 0);
+ 	if (detached) {
+-- 
+1.8.3.1
+
