@@ -1,6 +1,6 @@
 Name:    multipath-tools
 Version: 0.8.5
-Release: 4
+Release: 5
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -26,6 +26,7 @@ Patch15: 0015-bugfix-RH-remove-local-disk-from-pathvec.patch
 Patch16: 0016-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
 Patch17: 0017-libmultipath-fix-compile-error.patch 
 
+BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, 
 BuildRequires:    systemd-units, systemd-devel, json-c-devel, perl-interpreter, pkgconfig
@@ -102,6 +103,9 @@ make install \
 install -d %{buildroot}/etc/multipath
 rm -rf %{buildroot}/%{_initrddir}
 
+%check
+make test
+
 %post
 /sbin/ldconfig
 
@@ -165,6 +169,12 @@ fi
 
 
 %changelog
+* Wed Aug 12 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-5
+- Type:testcode
+- ID:NA
+- SUG:NA
+- DESC:add make test
+
 * Wed Aug 11 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-4
 - Type:bugfix
 - ID:NA
