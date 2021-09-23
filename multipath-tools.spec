@@ -1,6 +1,8 @@
+#needsrootforbuild
+
 Name:    multipath-tools
 Version: 0.8.4
-Release: 10
+Release: 11
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -180,6 +182,12 @@ fi
 
 
 %changelog
+* Thu Sep 23 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-11
+- Type:testcode
+- ID:NA
+- SUG:NA
+- DESC:add needsrootforbuild for make test
+
 * Wed Aug 12 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-10
 - Type:bugfix
 - ID:NA
