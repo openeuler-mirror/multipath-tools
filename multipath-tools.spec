@@ -1,7 +1,7 @@
 #needsrootforbuild
 Name:    multipath-tools
 Version: 0.8.5
-Release: 6
+Release: 7
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -25,7 +25,7 @@ Patch13: 0013-fix-find-multipath-failure.patch
 Patch14: 0014-kpartx-change-kpartx-file-and-default-bindir.patch
 Patch15: 0015-bugfix-RH-remove-local-disk-from-pathvec.patch
 Patch16: 0016-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
-Patch17: 0017-libmultipath-fix-compile-error.patch 
+Patch17: 0017-libmultipath-deal-with-dynamic-PTHREAD_STACK_MIN.patch 
 
 BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
@@ -170,6 +170,12 @@ fi
 
 
 %changelog
+* Fri Sep 24 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-7
+- Type:codeclean
+- ID:NA
+- SUG:NA
+- DESC:use upstream patch instead huawei patch
+
 * Thu Sep 23 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-6
 - Type:testcode
 - ID:NA
