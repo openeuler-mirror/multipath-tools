@@ -1,4 +1,4 @@
-version-ctrl: git
-src_repo: https://git.opensvc.com/gitweb.cgi?p=multipath-tools/.git
+version-ctrl: github
+src_repo: opensvc/multipath-tools
 tag_prefix: v 
 seperator: "."
