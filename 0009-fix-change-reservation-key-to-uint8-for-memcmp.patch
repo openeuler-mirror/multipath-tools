@@ -1,0 +1,44 @@
+From 1564c9c5f94dc23959f46e3061c33146a98523d2 Mon Sep 17 00:00:00 2001
+From: sunguoshuai <sunguoshuai@huawei.com>
+Date: Wed, 23 Jan 2019 02:21:31 -0500
+Subject: [PATCH 09/15] fix change reservation key to uint8 for memcmp
+
+reason:fix change reservation key to uint8 for memcmp
+---
+ libmpathpersist/mpath_persist.c | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/libmpathpersist/mpath_persist.c b/libmpathpersist/mpath_persist.c
+index 803a2a2..a062920 100644
+--- a/libmpathpersist/mpath_persist.c
++++ b/libmpathpersist/mpath_persist.c
+@@ -275,6 +275,9 @@ static int do_mpath_persistent_reserve_out(vector curmp, vector pathvec, int fd,
+ 	int ret;
+ 	uint64_t prkey;
+ 	struct config *conf;
++	uint8_t  uitmp[8] = {0};
++	uint64_t uireservation = {0};
++	int j;
+ 
+ 	ret = mpath_get_map(curmp, pathvec, fd, &alias, &mpp);
+ 	if (ret != MPATH_PR_SUCCESS)
+@@ -301,8 +304,14 @@ static int do_mpath_persistent_reserve_out(vector curmp, vector pathvec, int fd,
+ 		}
+ 	}
+ 
+-	if (memcmp(paramp->key, &mpp->reservation_key, 8) &&
+-	    memcmp(paramp->sa_key, &mpp->reservation_key, 8) &&
++	uireservation = get_be64(mpp->reservation_key);
++	for (j = 7; j >= 0; --j) {
++		uitmp[j] = (uireservation & 0xff);
++		uireservation >>= 8;
++	}
++
++	if (memcmp(paramp->key, uitmp, 8) &&
++	    memcmp(paramp->sa_key, uitmp, 8) &&
+ 	    (prkey || rq_servact != MPATH_PROUT_REG_IGN_SA)) {
+ 		condlog(0, "%s: configured reservation key doesn't match: 0x%" PRIx64, alias, get_be64(mpp->reservation_key));
+ 		ret = MPATH_PR_SYNTAX_ERROR;
+-- 
+1.8.3.1
+

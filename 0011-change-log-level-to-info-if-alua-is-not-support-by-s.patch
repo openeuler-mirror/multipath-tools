@@ -1,15 +1,15 @@
-From a0cb1bf53c2a2b4089b98d3c811845517c95c6f5 Mon Sep 17 00:00:00 2001
+From 2124943524470f9122a99e6b72c1946c0db3f7f0 Mon Sep 17 00:00:00 2001
 From: root <root@localhost.localdomain>
 Date: Fri, 22 Mar 2019 19:37:43 +0800
-Subject: [PATCH] change log level to info if alua is not support by storage
- server
+Subject: [PATCH 11/15] change log level to info if alua is not support by
+ storage server
 
 ---
  libmultipath/prioritizers/alua.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/libmultipath/prioritizers/alua.c b/libmultipath/prioritizers/alua.c
-index e65b6f5..97eb152 100644
+index a6307d6..8460848 100644
 --- a/libmultipath/prioritizers/alua.c
 +++ b/libmultipath/prioritizers/alua.c
 @@ -130,7 +130,7 @@ int getprio (struct path * pp, char * args, unsigned int timeout)
@@ -18,7 +18,7 @@ index e65b6f5..97eb152 100644
  		case ALUA_PRIO_NOT_SUPPORTED:
 -			condlog(0, "%s: alua not supported", pp->dev);
 +			condlog(3, "%s: alua not supported", pp->dev);
-                         rc = 0;
+ 			rc = 0;
  			break;
  		case ALUA_PRIO_RTPG_FAILED:
 -- 

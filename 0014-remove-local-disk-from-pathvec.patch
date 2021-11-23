@@ -1,23 +1,24 @@
-From a448fe41073d613764b8988d1e22ee0c6e7e3f92 Mon Sep 17 00:00:00 2001
+From a31fb57aff527b5304c9a1cb1bd729317280abdd Mon Sep 17 00:00:00 2001
 From: chenminhua <chenminhua1@huawei.com>
 Date: Mon, 2 Apr 2018 04:01:04 -0400
-Subject: [PATCH] remove local path
+Subject: [PATCH 14/15] remove local disk from pathvec
 
 [Changelog]:add upgrade path
 [Author]:chenminhua
 ---
- libmultipath/discovery.c | 128 ++++++++++++++++++++++++++++++++++++++++++++---
- libmultipath/discovery.h |   1 +
- multipathd/main.c        |   4 ++
- 3 files changed, 127 insertions(+), 6 deletions(-)
+ libmultipath/discovery.c          | 128 ++++++++++++++++++++++++++++++++++++--
+ libmultipath/discovery.h          |   1 +
+ libmultipath/libmultipath.version |   1 +
+ multipathd/main.c                 |   4 ++
+ 4 files changed, 128 insertions(+), 6 deletions(-)
 
 diff --git a/libmultipath/discovery.c b/libmultipath/discovery.c
-index c2e1754..24e9b50 100644
+index f25fe9e..72982ac 100644
 --- a/libmultipath/discovery.c
 +++ b/libmultipath/discovery.c
-@@ -36,6 +36,103 @@
- #include "configure.h"
+@@ -37,6 +37,103 @@
  #include "print.h"
+ #include "strbuf.h"
  
 +const char *conf_file = "/etc/multipath_private.conf";
 +static int conf_file_parsed = 0;
@@ -119,7 +120,7 @@ index c2e1754..24e9b50 100644
  struct vpd_vendor_page vpd_vendor_pages[VPD_VP_ARRAY_SIZE] = {
  	[VPD_VP_UNDEF]	= { 0x00, "undef" },
  	[VPD_VP_HP3PAR]	= { 0xc0, "hp3par" },
-@@ -127,22 +224,35 @@ path_discover (vector pathvec, struct config * conf,
+@@ -128,22 +225,35 @@ path_discover (vector pathvec, struct config * conf,
  {
  	struct path *pp;
  	char devt[BLK_DEV_SIZE];
@@ -161,7 +162,7 @@ index c2e1754..24e9b50 100644
  }
  
  static void cleanup_udev_enumerate_ptr(void *arg)
-@@ -2138,6 +2248,12 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
+@@ -2284,6 +2394,12 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
  		if (rc != PATHINFO_OK)
  			return rc;
  
@@ -175,22 +176,34 @@ index c2e1754..24e9b50 100644
  		    pp->sg_id.proto_id == SCSI_PROTOCOL_USB &&
  		    !conf->allow_usb_devices) {
 diff --git a/libmultipath/discovery.h b/libmultipath/discovery.h
-index 6444887..a438b44 100644
+index a5446b4..26b6db1 100644
 --- a/libmultipath/discovery.h
 +++ b/libmultipath/discovery.h
-@@ -56,6 +56,7 @@ int sysfs_get_asymmetric_access_state(struct path *pp,
- 				      char *buff, int buflen);
+@@ -58,6 +58,7 @@ bool has_uid_fallback(struct path *pp);
  int get_uid(struct path * pp, int path_state, struct udev_device *udev,
  	    int allow_fallback);
+ bool is_vpd_page_supported(int fd, int pg);
 +int remove_local_path(vector pathvec, struct path *pp);
  
  /*
   * discovery bitmask
+diff --git a/libmultipath/libmultipath.version b/libmultipath/libmultipath.version
+index eb5b5b5..bccf3f3 100644
+--- a/libmultipath/libmultipath.version
++++ b/libmultipath/libmultipath.version
+@@ -142,6 +142,7 @@ global:
+ 	recv_packet_from_client;
+ 	reinstate_paths;
+ 	remember_wwid;
++	remove_local_path;
+ 	remove_map;
+ 	remove_map_by_alias;
+ 	remove_maps;
 diff --git a/multipathd/main.c b/multipathd/main.c
-index 12459ab..0b572ee 100644
+index 02f368a..47ca1b5 100644
 --- a/multipathd/main.c
 +++ b/multipathd/main.c
-@@ -964,6 +964,10 @@ ev_add_path (struct path * pp, struct vectors * vecs, int need_do_map)
+@@ -1035,6 +1035,10 @@ ev_add_path (struct path * pp, struct vectors * vecs, int need_do_map)
  	int start_waiter = 0;
  	int ret;
  
