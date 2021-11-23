@@ -1,31 +1,29 @@
 #needsrootforbuild
 Name:    multipath-tools
-Version: 0.8.5
-Release: 7
+Version: 0.8.7
+Release: 1
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
 
-# curl https://github.com/opensvc/multipath-tools/archive/0.8.5.tar.gz -o multipath-tools-0.8.5.tgz
-Source0: multipath-tools-0.8.5.tgz
+# curl https://github.com/opensvc/multipath-tools/archive/0.8.7.tar.gz -o multipath-tools-0.8.7.tgz
+Source0: multipath-tools-0.8.7.tgz
 Source1: multipath.conf
 Patch1:  0001-change-order-of-multipath.rules.patch
 Patch2:  0002-RH-add-mpathconf.patch
 Patch3:  0003-RH-Remove-the-property-blacklist-exception-builtin.patch
 Patch4:  0004-fix-syntax-error.patch
-Patch5:  0005-fix-multipathd-resize-when-not-all-paths-size-are-equal.patch
+Patch5:  0005-fix-multipathd-resize-when-not-all-paths-size-are-eq.patch
 Patch6:  0006-avoid-handling-paths-repeatedly-in-coalesce-paths.patch
-Patch7:  0007-bugfix-lun-expansion-failure-when-there-is-offline-path.patch
+Patch7:  0007-fix-lun-expansion-failure-when-there-is-offline-path.patch
 Patch8:  0008-fix-bugs-backported-from-next-branch.patch
-Patch9:  0009-bugfix-change-reservation-key-to-uint8-for-memcmp.patch
-Patch10: 0010-ignore-for-clear-mismatch-key.patch
-Patch11: 0011-bugfix-flush-and-sync-before-reboot.patch
-Patch12: 0012-change-log-level-to-info-if-alua-is-not-support-by-s.patch
-Patch13: 0013-fix-find-multipath-failure.patch
-Patch14: 0014-kpartx-change-kpartx-file-and-default-bindir.patch
-Patch15: 0015-bugfix-RH-remove-local-disk-from-pathvec.patch
-Patch16: 0016-bugfix-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
-Patch17: 0017-libmultipath-deal-with-dynamic-PTHREAD_STACK_MIN.patch 
+Patch9:  0009-fix-change-reservation-key-to-uint8-for-memcmp.patch
+Patch10: 0010-bugfix-flush-and-sync-before-reboot.patch
+Patch11: 0011-change-log-level-to-info-if-alua-is-not-support-by-s.patch
+Patch12: 0012-device-mapper-multipath-fix-find-multipath-failure.patch
+Patch13: 0013-kpartx-change-kpartx-file-and-default-bindir.patch
+Patch14: 0014-remove-local-disk-from-pathvec.patch
+Patch15: 0015-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
 
 BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
@@ -83,7 +81,7 @@ Summary: Create device maps from partition tables.
 Reads partition tables and create device maps over partitions segments detected.
 
 %prep
-%autosetup -n multipath-tools-0.8.5 -p1
+%autosetup -n multipath-tools-0.8.7 -p1
 cp %{SOURCE1} .
 
 %build
@@ -137,6 +135,8 @@ fi
         /usr/%{_lib}/libmpathpersist.so.*
         /usr/%{_lib}/libmpathcmd.so.*
         /usr/%{_lib}/libdmmp.so.*
+	/usr/%{_lib}/libmpathvalid.so
+	/usr/%{_lib}/libmpathvalid.so.*
 %dir    /etc/multipath
 %dir    /usr/%{_lib}/multipath
         /usr/%{_lib}/multipath/*
@@ -170,6 +170,9 @@ fi
 
 
 %changelog
+* Tue Nov 23 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.7-1
+- upgrade to 0.8.7
+
 * Fri Sep 24 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-7
 - Type:codeclean
 - ID:NA
