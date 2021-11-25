@@ -1,0 +1,110 @@
+From 292397632df7b5048d09285e7a8506a7a67ff645 Mon Sep 17 00:00:00 2001
+From: Benjamin Marzinski <bmarzins@redhat.com>
+Date: Tue, 11 Aug 2020 16:58:38 -0500
+Subject: [PATCH] libmultipath: refactor path counting
+
+pathcountgr() is never used except by pathcount(), and neither is the
+special case for PATH_WILD. Simplify this and change it into a helper
+function that is called by pathcount, and will be used again in a future
+patch. Leave count_active_paths alone for the sake of compiler
+optimization.
+
+Also use count_active_paths() in mpath_persist.
+
+Signed-off-by: Benjamin Marzinski <bmarzins@redhat.com>
+Reviewed-by: Martin Wilck <mwilck@suse.com>
+---
+ libmpathpersist/mpath_persist.c |  4 ++--
+ libmultipath/structs.c          | 31 +++++++++++++++++--------------
+ libmultipath/structs.h          |  1 -
+ 3 files changed, 19 insertions(+), 17 deletions(-)
+
+diff --git a/libmpathpersist/mpath_persist.c b/libmpathpersist/mpath_persist.c
+index aeb3271..7cbb299 100644
+--- a/libmpathpersist/mpath_persist.c
++++ b/libmpathpersist/mpath_persist.c
+@@ -451,7 +451,7 @@ int mpath_prout_reg(struct multipath *mpp,int rq_servact, int rq_scope,
+ 
+ 	all_tg_pt = (mpp->all_tg_pt == ALL_TG_PT_ON ||
+ 		     paramp->sa_flags & MPATH_F_ALL_TG_PT_MASK);
+-	active_pathcount = pathcount(mpp, PATH_UP) + pathcount(mpp, PATH_GHOST);
++	active_pathcount = count_active_paths(mpp);
+ 
+ 	if (active_pathcount == 0) {
+ 		condlog (0, "%s: no path available", mpp->wwid);
+@@ -663,7 +663,7 @@ int mpath_prout_rel(struct multipath *mpp,int rq_servact, int rq_scope,
+ 	if (!mpp)
+ 		return MPATH_PR_DMMP_ERROR;
+ 
+-	active_pathcount = pathcount (mpp, PATH_UP) + pathcount (mpp, PATH_GHOST);
++	active_pathcount = count_active_paths(mpp);
+ 
+ 	struct threadinfo thread[active_pathcount];
+ 	memset(thread, 0, sizeof(thread));
+diff --git a/libmultipath/structs.c b/libmultipath/structs.c
+index 6a66817..b0360f1 100644
+--- a/libmultipath/structs.c
++++ b/libmultipath/structs.c
+@@ -456,30 +456,33 @@ find_path_by_devt (const struct _vector *pathvec, const char * dev_t)
+ 	return NULL;
+ }
+ 
+-int pathcountgr(const struct pathgroup *pgp, int state)
++static int do_pathcount(const struct multipath *mpp, const int *states,
++			unsigned int nr_states)
+ {
++	struct pathgroup *pgp;
+ 	struct path *pp;
+ 	int count = 0;
+-	int i;
++	unsigned int i, j, k;
+ 
+-	vector_foreach_slot (pgp->paths, pp, i)
+-		if ((pp->state == state) || (state == PATH_WILD))
+-			count++;
++	if (!mpp->pg || !nr_states)
++		return count;
+ 
++	vector_foreach_slot (mpp->pg, pgp, i) {
++		vector_foreach_slot (pgp->paths, pp, j) {
++			for (k = 0; k < nr_states; k++) {
++				if (pp->state == states[k]) {
++					count++;
++					break;
++				}
++			}
++		}
++	}
+ 	return count;
+ }
+ 
+ int pathcount(const struct multipath *mpp, int state)
+ {
+-	struct pathgroup *pgp;
+-	int count = 0;
+-	int i;
+-
+-	if (mpp->pg) {
+-		vector_foreach_slot (mpp->pg, pgp, i)
+-			count += pathcountgr(pgp, state);
+-	}
+-	return count;
++	return do_pathcount(mpp, &state, 1);
+ }
+ 
+ int count_active_paths(const struct multipath *mpp)
+diff --git a/libmultipath/structs.h b/libmultipath/structs.h
+index 719a994..a218c06 100644
+--- a/libmultipath/structs.h
++++ b/libmultipath/structs.h
+@@ -463,7 +463,6 @@ struct path * find_path_by_devt (const struct _vector *pathvec, const char *devt
+ struct path * find_path_by_dev (const struct _vector *pathvec, const char *dev);
+ struct path * first_path (const struct multipath *mpp);
+ 
+-int pathcountgr (const struct pathgroup *, int);
+ int pathcount (const struct multipath *, int);
+ int count_active_paths(const struct multipath *);
+ int pathcmp (const struct pathgroup *, const struct pathgroup *);
+-- 
+2.14.3 (Apple Git-98)
+
