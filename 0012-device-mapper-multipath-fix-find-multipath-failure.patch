@@ -1,7 +1,7 @@
-From eba371974dc9343740ff3b3fd18caab8529291d1 Mon Sep 17 00:00:00 2001
+From 7462caa4d81facc941bde362113c05ab4c4f04d7 Mon Sep 17 00:00:00 2001
 From: openEuler Buildteam <buildteam@openeuler.org>
 Date: Thu, 2 Jan 2020 15:34:13 +0800
-Subject: [PATCH] device-mapper-multipath: fix find multipath failure
+Subject: [PATCH 12/15] device-mapper-multipath: fix find multipath failure
 
 when DEFAULT_FIND_MULTIPATHS is FIND_MULTIPATHS_STRICT, it fail to
 find multipath in find_multipaths function, use FIND_MULTIPATHS_OFF
@@ -11,10 +11,10 @@ instead of FIND_MULTIPATHS_STRICT.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/libmultipath/defaults.h b/libmultipath/defaults.h
-index 7f3839f..c84d31d 100644
+index c27946c..e0dd32a 100644
 --- a/libmultipath/defaults.h
 +++ b/libmultipath/defaults.h
-@@ -17,7 +17,7 @@
+@@ -23,7 +23,7 @@
  #define DEFAULT_NO_PATH_RETRY	NO_PATH_RETRY_UNDEF
  #define DEFAULT_VERBOSITY	2
  #define DEFAULT_REASSIGN_MAPS	0

@@ -1,26 +1,21 @@
-From 5ebbef9c1f3ae72efe7f9582532a346227a0a1a3 Mon Sep 17 00:00:00 2001
+From 1c49c790c50452564b7319b2a427462ad266793f Mon Sep 17 00:00:00 2001
 From: renmingshuai <renmingshuai@huawei.com>
 Date: Thu, 28 Jan 2021 22:26:58 +0800
-Subject: [PATCH] fix lun expansion failure when there is offline path
+Subject: [PATCH 07/15] fix lun expansion failure when there is offline path
 
 ---
- libmultipath/configure.c   | 20 +++++++++++++++-----
+ libmultipath/configure.c   | 10 ++++++++++
  libmultipath/structs_vec.c |  5 +++--
- 2 files changed, 18 insertions(+), 7 deletions(-)
+ 2 files changed, 13 insertions(+), 2 deletions(-)
 
 diff --git a/libmultipath/configure.c b/libmultipath/configure.c
-index ff65c1b..e616da2 100644
+index fdf8005..84a246b 100644
 --- a/libmultipath/configure.c
 +++ b/libmultipath/configure.c
-@@ -1203,11 +1203,18 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
+@@ -1187,6 +1187,13 @@ int coalesce_paths (struct vectors *vecs, vector mpvec, char *refwwid,
  			orphan_path(pp1, "only one path");
  			continue;
  		}
--                /* if path is handled before */
--                if (pp1->handled) {
--                        condlog(3, "%s: skip handled path.", pp1->dev_t);
--                        continue;
--                }
 +
 +		/* if path is offline */
 +		if (pp1->state == PATH_DOWN) {
@@ -28,15 +23,10 @@ index ff65c1b..e616da2 100644
 +			continue;
 +		}
 +
-+		/* if path is handled before */
-+		if (pp1->handled) {
-+			condlog(3, "%s: skip handled path.", pp1->dev_t);
-+			continue;
-+		}
- 
- 
- 		/*
-@@ -1235,6 +1242,9 @@ int coalesce_paths (struct vectors * vecs, vector newmp, char * refwwid,
+ 		/* if path is handled before */
+ 		if (pp1->handled) {
+ 			condlog(3, "%s: skip handled path.", pp1->dev_t);
+@@ -1219,6 +1226,9 @@ int coalesce_paths (struct vectors *vecs, vector mpvec, char *refwwid,
  			if (strcmp(pp1->wwid, pp2->wwid))
  				continue;
  
@@ -47,10 +37,10 @@ index ff65c1b..e616da2 100644
  				mpp->size = pp2->size;
  
 diff --git a/libmultipath/structs_vec.c b/libmultipath/structs_vec.c
-index 8676081..0300add 100644
+index 8170150..adc034b 100644
 --- a/libmultipath/structs_vec.c
 +++ b/libmultipath/structs_vec.c
-@@ -742,8 +742,9 @@ int verify_paths(struct multipath *mpp)
+@@ -722,8 +722,9 @@ int verify_paths(struct multipath *mpp)
  		/*
  		 * see if path is in sysfs
  		 */

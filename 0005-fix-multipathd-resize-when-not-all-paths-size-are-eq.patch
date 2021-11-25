@@ -1,6 +1,17 @@
+From f3c11af226bcbb36da7c2802774c6128dd88b5b4 Mon Sep 17 00:00:00 2001
+From: Lixiaokeng <lixiaokeng@huawei.com>
+Date: Tue, 23 Nov 2021 20:14:23 +0800
+Subject: [PATCH 05/15] fix multipathd resize when not all paths size are equal
+
+---
+ multipathd/cli_handlers.c | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/multipathd/cli_handlers.c b/multipathd/cli_handlers.c
+index 6d3a0ae..aeb2be5 100644
 --- a/multipathd/cli_handlers.c
 +++ b/multipathd/cli_handlers.c
-@@ -981,9 +981,10 @@ cli_resize(void *v, char **reply, int *len, void *data)
+@@ -866,9 +866,10 @@ cli_resize(void *v, char **reply, int *len, void *data)
  	char * mapname = get_keyparam(v, MAP);
  	struct multipath *mpp;
  	int minor;
@@ -12,7 +23,7 @@
  
  	mapname = convert_dev(mapname, 0);
  	condlog(2, "%s: resize map (operator)", mapname);
-@@ -1021,6 +1022,22 @@ cli_resize(void *v, char **reply, int *len, void *data)
+@@ -906,6 +907,22 @@ cli_resize(void *v, char **reply, int *len, void *data)
  			mapname);
  		return 1;
  	}
