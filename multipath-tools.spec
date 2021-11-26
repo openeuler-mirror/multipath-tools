@@ -2,7 +2,7 @@
 
 Name:    multipath-tools
 Version: 0.8.4
-Release: 11
+Release: 12
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -36,6 +36,8 @@ Patch23: 0023-libmultipath-warn-about-NULL-value-of-mpp-hwe.patch
 Patch24: 0024-libmultipath-fix-mpp-hwe-handling-in-sync_paths.patch
 Patch25: 0025-fix-boolean-value-with-json-c-0.14.patch
 Patch26: 0026-multipath-tools-tests-directio-fix-Wmaybe-uninitaliz.patch
+Patch27: 0027-libmultipath-refactor-path-counting.patch 
+Patch28: 0028-libmultipath-count-pending-paths-as-active-on-loads.patch
 
 BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
@@ -182,6 +184,9 @@ fi
 
 
 %changelog
+* Thu Nov 25 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-12
+- count pending paths as active on loads
+
 * Thu Sep 23 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-11
 - Type:testcode
 - ID:NA
