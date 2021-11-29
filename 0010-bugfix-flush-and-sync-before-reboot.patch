@@ -1,0 +1,30 @@
+From 822769cf9509ebca9968ebd29a983271b24b1625 Mon Sep 17 00:00:00 2001
+From: Lixiaokeng <lixiaokeng@huawei.com>
+Date: Tue, 23 Nov 2021 21:16:19 +0800
+Subject: [PATCH 10/15] bugfix flush and sync before reboot
+
+---
+ libmultipath/util.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/libmultipath/util.c b/libmultipath/util.c
+index ea85840..dd32803 100644
+--- a/libmultipath/util.c
++++ b/libmultipath/util.c
+@@ -368,6 +368,13 @@ int safe_write(int fd, const void *buf, size_t count)
+ 		count -= r;
+ 		buf = (const char *)buf + r;
+ 	}
++
++	/* sync->disk */
++	if (fsync(fd) < 0) {
++		condlog(0, "failed to fsync fd :%d", fd);
++		return -errno;
++	}
++
+ 	return 0;
+ }
+ 
+-- 
+1.8.3.1
+

@@ -1,7 +1,7 @@
-From afc8dd3d344cd23f7ea861fa52b2d83bf0c3f036 Mon Sep 17 00:00:00 2001
+From d025415810a5792c333e99bd2f77a902c235ea09 Mon Sep 17 00:00:00 2001
 From: Benjamin Marzinski <bmarzins@redhat.com>
 Date: Fri, 15 May 2015 18:14:09 -0500
-Subject: [PATCH] change order of multipath.rules
+Subject: [PATCH 01/15] change order of multipath.rules
 
 At least for RedHat, the rule that calls scsi_id is
 60-persistent-storage.rules, so the multipath rule needs to come
