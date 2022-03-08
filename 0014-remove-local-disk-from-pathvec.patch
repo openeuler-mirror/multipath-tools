@@ -1,22 +1,26 @@
-From a31fb57aff527b5304c9a1cb1bd729317280abdd Mon Sep 17 00:00:00 2001
+From 2051a9f6ea12dc90c9c5b90912b79984d9064d0d Mon Sep 17 00:00:00 2001
 From: chenminhua <chenminhua1@huawei.com>
 Date: Mon, 2 Apr 2018 04:01:04 -0400
-Subject: [PATCH 14/15] remove local disk from pathvec
+Subject: [PATCH] remove local disk from pathvec
+
+Here we provide a multipath_private.conf to enable remove_local_disk.
+When enable remove_local_disk, the multipath devices are only created
+on fc or iscsi devices.
 
 [Changelog]:add upgrade path
 [Author]:chenminhua
 ---
- libmultipath/discovery.c          | 128 ++++++++++++++++++++++++++++++++++++--
+ libmultipath/discovery.c          | 137 ++++++++++++++++++++++++++++++++++++--
  libmultipath/discovery.h          |   1 +
  libmultipath/libmultipath.version |   1 +
  multipathd/main.c                 |   4 ++
- 4 files changed, 128 insertions(+), 6 deletions(-)
+ 4 files changed, 137 insertions(+), 6 deletions(-)
 
 diff --git a/libmultipath/discovery.c b/libmultipath/discovery.c
-index f25fe9e..72982ac 100644
+index f25fe9e..c9ebd49 100644
 --- a/libmultipath/discovery.c
 +++ b/libmultipath/discovery.c
-@@ -37,6 +37,103 @@
+@@ -37,6 +37,112 @@
  #include "print.h"
  #include "strbuf.h"
  
@@ -68,13 +72,22 @@ index f25fe9e..72982ac 100644
 +	return should_remove_local_disk;
 +}
 +
-+/* Filter the local disks and remove them from pathvec */
++/* Filter the local disks and remove them from pathvec.
++ * When bus type is SCSI and device  type is (fc or scsi),
++ * return 0. This means the path is not local disk.
++ * When enable remove_local_disk, multipath only supports
++ * iscsi and fc device.
++ */
 +static int
-+transport (int h)
++transport(int type, int h)
 +{
 +	char buff[PATH_SIZE];
 +	int len, off;
 +	struct stat a_stat;
++
++	if (type != SYSFS_BUS_SCSI) {
++		return 1;
++	}
 +
 +	/* FC host */
 +	strcpy(buff, "/sys");
@@ -106,7 +119,7 @@ index f25fe9e..72982ac 100644
 +		return 1;
 +	}
 +
-+	if (transport(pp->sg_id.host_no) == 0) {
++	if (transport(pp->bus, pp->sg_id.host_no) == 0) {
 +		return 1;
 +	}
 +
@@ -120,7 +133,7 @@ index f25fe9e..72982ac 100644
  struct vpd_vendor_page vpd_vendor_pages[VPD_VP_ARRAY_SIZE] = {
  	[VPD_VP_UNDEF]	= { 0x00, "undef" },
  	[VPD_VP_HP3PAR]	= { 0xc0, "hp3par" },
-@@ -128,22 +225,35 @@ path_discover (vector pathvec, struct config * conf,
+@@ -128,22 +234,35 @@ path_discover (vector pathvec, struct config * conf,
  {
  	struct path *pp;
  	char devt[BLK_DEV_SIZE];
@@ -162,12 +175,12 @@ index f25fe9e..72982ac 100644
  }
  
  static void cleanup_udev_enumerate_ptr(void *arg)
-@@ -2284,6 +2394,12 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
+@@ -2284,6 +2403,12 @@ int pathinfo(struct path *pp, struct config *conf, int mask)
  		if (rc != PATHINFO_OK)
  			return rc;
  
 +		/* free local device */
-+		if (get_should_remove_local_disk() && transport(pp->sg_id.host_no)) {
++		if (get_should_remove_local_disk() && transport(pp->bus, pp->sg_id.host_no)) {
 +			condlog(3, "%s is a local device", pp->dev);
 +			return 0;
 +		}
@@ -215,5 +228,5 @@ index 02f368a..47ca1b5 100644
  	 * need path UID to go any further
  	 */
 -- 
-1.8.3.1
+2.14.3 (Apple Git-98)
 
