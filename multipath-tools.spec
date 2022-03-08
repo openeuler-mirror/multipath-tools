@@ -1,7 +1,7 @@
 #needsrootforbuild
 Name:    multipath-tools
 Version: 0.8.7
-Release: 1
+Release: 2
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -170,6 +170,9 @@ fi
 
 
 %changelog
+* Tue Mar 8 2022 lixiaokeng<lixiaokeng@huawei.com> - 0.8.7-2
+- don't create nvme multipath device when enable remove_local_path
+
 * Tue Nov 23 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.7-1
 - upgrade to 0.8.7
 
