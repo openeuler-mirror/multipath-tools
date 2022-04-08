@@ -1,0 +1,56 @@
+From 0b0062058ef0bcf2a80194700ed20304d4445854 Mon Sep 17 00:00:00 2001
+From: lixiaokeng <lixiaokeng@huawei.com>
+Date: Mon, 13 Jul 2020 13:07:40 +0200
+Subject: [PATCH] multipathd: fix mpp->hwe use after free in ev_remove_path
+
+When a multipath device (for example mpatha) has only one path
+and it can't flush because of occupation, "multipathd del path"
+and "multipath -v2" may lead to multipathd coredump. The reason
+is that mpp->hwe = pp->hwe but pp->hwe will be free later. Here
+we clear mpp->hwe in clear_ref_from_mpp.
+
+Signed-off-by: Lixiaokeng <lixiaokeng@huawei.com>
+---
+ multipathd/main.c | 24 +++++++++++++++---------
+ 1 file changed, 15 insertions(+), 9 deletions(-)
+
+diff --git a/multipathd/main.c b/multipathd/main.c
+index e7e176b..1c02441 100644
+--- a/multipathd/main.c
++++ b/multipathd/main.c
+@@ -850,17 +850,23 @@ void clear_ref_from_mpp(struct path * pp, struct vectors * vecs)
+ 	int j;
+ 
+ 	mpp = find_mp_by_wwid(vecs->mpvec, pp->wwid);
+-	if(!!mpp){
+-		condlog(2, "%s: clear path from mpp %s", pp->dev, mpp->alias);
+-		if ((i = find_slot(mpp->paths, (void *)pp)) != -1){
+-			vector_del_slot(mpp->paths, i);
+-		}
+-		vector_foreach_slot (mpp->pg, pgp, j) {
+-			if ((i = find_slot(pgp->paths, (void *)pp)) != -1){
+-				vector_del_slot(pgp->paths, i);
+-			}
++	if (!mpp) {
++		return;
++	}
++
++	condlog(2, "%s: clear path from mpp %s", pp->dev, mpp->alias);
++	if (mpp->hwe == pp->hwe) {
++		mpp->hwe = NULL;
++	}
++	if ((i = find_slot(mpp->paths, (void *)pp)) != -1) {
++		vector_del_slot(mpp->paths, i);
++	}
++	vector_foreach_slot(mpp->pg, pgp, j) {
++		if ((i = find_slot(pgp->paths, (void *)pp)) != -1) {
++			vector_del_slot(pgp->paths, i);
+ 		}
+ 	}
++	extract_hwe_from_path(mpp);
+ }
+ 
+ static int
+-- 
+2.14.3 (Apple Git-98)
+
