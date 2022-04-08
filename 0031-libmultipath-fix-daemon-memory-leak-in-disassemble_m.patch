@@ -1,0 +1,82 @@
+From cb7441c91c27c685ea47043a0eab20c1eb56206e Mon Sep 17 00:00:00 2001
+From: lixiaokeng <lixiaokeng@huawei.com>
+Date: Mon, 13 Jul 2020 13:07:40 +0200
+Subject: [PATCH] libmultipath: fix daemon memory leak in disassemble_map
+
+When one iscsi device logs in and logs out with the "multipath -r"
+executed at the same time, memory leak happens in multipathd
+process.
+
+The reason is following. When "multipath -r" is executed, the path
+will be free in configure function. Before path_discovery executed,
+iscsi device logs out. Then path_discovery will not find any path and
+there is no path in the gvecs->pathvec. When map_discovery function
+is executed, disassemble_map function will be called. Because
+gvecs->pathvec->slot is empty and is_deamon is 1, a path will be
+allocated and is not stored in gvecs->pathvec but store in
+mpp->pg. But when the mpp is removed and freed by remove_map
+function, the path will not be free and can't be find anymore.
+
+The procedure details given as follows,
+1."multipath -r" is executed
+main
+	->child
+		->reconfigure
+			->configure
+				->path_discovery //after iscsi logout
+					->map_discovery
+						->update_multipath_table
+							->disassemble_map
+								->alloc_path
+2.then "multipath -r" is executed again
+main
+	->child
+		->reconfigure
+			->remove_maps_and_stop_waiters
+				->remove_maps
+
+Here, we skip alloc_path if pp isn't find in pathvec and process is daemon. In
+daemon, we should not store path with incomplete information to pathvec. The
+pathvec stores all paths in daemon, so it is reasonable keep same with pathvec.
+
+Reported-by: Tianxiong Lu <lutianxiong@huawei.com>
+Signed-off-by: Lixiaokeng <lixiaokeng@huawei.com>
+Signed-off-by: Zhiqiang Liu <liuzhiqiang26@huawei.com>
+---
+ libmultipath/dmparser.c | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/libmultipath/dmparser.c b/libmultipath/dmparser.c
+index 7da5fbf..3ce6eb3 100644
+--- a/libmultipath/dmparser.c
++++ b/libmultipath/dmparser.c
+@@ -305,6 +305,16 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
+ 			}
+ 
+ 			if (!pp) {
++				/* daemon should keep same with pathvec */
++				/* pp is not find in pathvec, skip it */
++				if (is_daemon) {
++					FREE(word);
++					for (k = 0; k < num_paths_args; k++) {
++						p += get_word(p, NULL);
++					}
++					continue;
++				}
++
+ 				pp_unfound = 1;
+ 				pp = alloc_path();
+ 
+@@ -317,8 +327,7 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
+ 					strlcpy(pp->wwid, mpp->wwid,
+ 						WWID_SIZE);
+ 				}
+-				/* Only call this in multipath client mode */
+-				if (!is_daemon && store_path(pathvec, pp)) {
++				if (store_path(pathvec, pp)) {
+ 					free_path(pp);
+ 					goto out1;
+ 				}
+-- 
+2.14.3 (Apple Git-98)
+
