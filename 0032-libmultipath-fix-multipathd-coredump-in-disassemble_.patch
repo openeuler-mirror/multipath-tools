@@ -1,0 +1,62 @@
+From 72816e34d2e4a3197e4a590e573c4fc64a360145 Mon Sep 17 00:00:00 2001
+From: lixiaokeng <lixiaokeng@huawei.com>
+Date: Mon, 13 Jul 2020 13:07:40 +0200
+Subject: [PATCH] libmultipath: fix multipathd coredump in disassemble_map
+
+Coredump appears when events are executed in a certain order.
+1. The sdc and sdd are added as paths of d1. The sdc is added
+firstly and d1->wait_for_udev be set to 1. Then sdd is added but
+it just adds to pathvec because d1->wait_for_udev is 1.
+2. The uev_remove_path(sdc) are executed. Because d1 has one
+path, d1 will be flushed.
+3. The uev_add_path(sdc) are executed. Now sdc and sdd will
+both add to d1 in adopt_paths because sdd->wwid is d1. And
+d1->wait_for_udev be set to 1.
+4. The uev_remove_path(sdd) are executed. Because d1->wait_for_udev
+is 1, domap doesn't executed and the major:minor of sdd(8:64)
+still exist in kernel d1. The sdd in pathvec is deleted.
+5. The uev_add_path(sdd) are executed. Now the sdd(8:64) is
+a path of d2. And new sdd is added to pathvec.
+6. The update_multipath_strings(d1) are executed. The d1 find
+sdd in pathvec by dev_t(8:64）and sdd will be add to d1. Now
+the pointer of sdd is store in paths of d1 and d2.
+7. When NIC is down and a new path add to d1, sdd will be freed
+in verify_paths (because sdd is actually a path of d2).
+8. When d2->hwe is sdd->hwe and setup_map(d2) is called. Core
+causes.
+
+The path shouldn't be add to the mpp whose wwid is different
+with its. Here we add wwid check in disassemble_map. This bug
+has been solved in upstream in update_pathvec_from_dm. It is
+a great change, so we fix it with huawei patch. This patch could
+be discarded when multipath-tools update.
+
+Signed-off-by:lixiaokeng<lixiaokeng@huawei.com>
+---
+ libmultipath/dmparser.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/libmultipath/dmparser.c b/libmultipath/dmparser.c
+index 3ce6eb3..9aa6bc5 100644
+--- a/libmultipath/dmparser.c
++++ b/libmultipath/dmparser.c
+@@ -332,6 +332,16 @@ int disassemble_map(vector pathvec, char *params, struct multipath *mpp,
+ 					goto out1;
+ 				}
+ 			} else {
++				if (strlen(pp->wwid) && strlen(mpp->wwid) &&
++				    strcmp(pp->wwid, mpp->wwid) != 0) {
++					condlog(0, "%s: path wwid is different with that of %s.\n", pp->dev_t, mpp->alias);
++					FREE(word);
++					for (k = 0; k < num_paths_args; k++) {
++						p += get_word(p, NULL);
++					}
++					continue;
++				}
++
+ 				if (!strlen(pp->wwid) &&
+ 				    strlen(mpp->wwid))
+ 					strlcpy(pp->wwid, mpp->wwid,
+-- 
+2.14.3 (Apple Git-98)
+
