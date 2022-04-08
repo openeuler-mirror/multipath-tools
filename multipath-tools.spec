@@ -2,7 +2,7 @@
 
 Name:    multipath-tools
 Version: 0.8.4
-Release: 13
+Release: 14
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -38,6 +38,10 @@ Patch25: 0025-fix-boolean-value-with-json-c-0.14.patch
 Patch26: 0026-multipath-tools-tests-directio-fix-Wmaybe-uninitaliz.patch
 Patch27: 0027-libmultipath-refactor-path-counting.patch 
 Patch28: 0028-libmultipath-count-pending-paths-as-active-on-loads.patch
+Patch29: 0029-clear-path-in-mpp-pg-in-clear_ref_from_mpp.patch
+Patch30: 0030-multipathd-fix-mpp-hwe-use-after-free-in-ev_remove_p.patch
+Patch31: 0031-libmultipath-fix-daemon-memory-leak-in-disassemble_m.patch
+Patch32: 0032-libmultipath-fix-multipathd-coredump-in-disassemble_.patch
 
 BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
@@ -184,6 +188,9 @@ fi
 
 
 %changelog
+* Fri Apr 8 2022 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-14
+- fix coredump and memory leak in long-term stability test
+
 * Tue Mar 8 2022 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-13
 - don't create local nvme multipath device when enable remove_local_path
 

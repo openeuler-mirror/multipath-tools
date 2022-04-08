@@ -1,0 +1,86 @@
+From 11e3f4d3ce82fad0d324f220e8339deed13f1e56 Mon Sep 17 00:00:00 2001
+From: lixiaokeng <lixiaokeng@huawei.com>
+Date: Mon, 13 Jul 2020 13:07:40 +0200
+Subject: [PATCH] clear path in mpp->pg in clear_ref_from_mpp
+
+When multipathd del path xxx, multipathd -v2, multipathd add path xxx and multipath -U
+dm-x are executed simultaneously, multipath -U dm-x will case coredump.
+
+The reason is that there are two paths with same dev_t in dm_table. The process
+is as follows:
+
+multipathd del path xxx(such as sde whose dev_t is 8:64):
+
+cli_del_path
+	->ev_remove_path
+		->domap //dm_table in kernel will be reloaded and doesn't contain 8:64.
+		        //Then multipath -v2 is executed, and the dm_table in kernel
+		        //will be reloaded and contains 8:64.
+		->setup_multipath
+			->update_multipath_strings
+				->update_multipath_table
+					->dm_get_map //get params with 8:64
+					->disassemble_map //pp1 will be saved mpp->pg
+		->delete pp1 in pathvec
+		->clear_ref_from_mpp //pp is cleared in mpp->paths but still saved in
+		                     //mpp->pg
+		->free_paths //pp1 is freed but still exist in mpp->pg and is not null
+
+multipathd add path sde
+cli_add_path
+	->store_pathinfo //alloc pp2 (dev_t is 8:64), and store it to gvecs->pathvec
+	                 //pp2 is not equal to pp1
+	->ev_add_path
+		->adopt_paths
+			->update_mpp_paths //pp1 is found in mpp->pg and its dev_t is
+			                   //8:64 and dev is not sde (cased by free).
+			                   //it will be stored in mpp->paths.
+			->pp2 is stored to mpp->paths
+		->setup_map //params with two 8:64
+		->domap //dm_table is reloaded and contains two 8:64
+
+multipath -U dm-x(sde is one path of dm-x)
+main
+	->check_usable_paths
+		->dm_get_maps //get params with two 8:64
+		->disassemble_map //alloc pp3 whose dev_t is 8:64, and pp3 is saved
+		                  //twice in mpp->pg
+		->free_multipath(mpp, FREE_PATHS) //double free pp3
+
+Here, we add that pp1 in mpp->pg is cleared in clear_ref_from_mpp.
+
+Reported-by: Tianxiong Lu <lutianxiong@huawei.com>
+Signed-off-by: lixiaokeng <lixiaokeng@huawei.com>
+---
+ multipathd/main.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/multipathd/main.c b/multipathd/main.c
+index 09ea102..e7e176b 100644
+--- a/multipathd/main.c
++++ b/multipathd/main.c
+@@ -845,7 +845,9 @@ static
+ void clear_ref_from_mpp(struct path * pp, struct vectors * vecs)
+ {
+ 	struct multipath * mpp = NULL;
++	struct pathgroup * pgp;
+ 	int i = -1;
++	int j;
+ 
+ 	mpp = find_mp_by_wwid(vecs->mpvec, pp->wwid);
+ 	if(!!mpp){
+@@ -853,6 +855,11 @@ void clear_ref_from_mpp(struct path * pp, struct vectors * vecs)
+ 		if ((i = find_slot(mpp->paths, (void *)pp)) != -1){
+ 			vector_del_slot(mpp->paths, i);
+ 		}
++		vector_foreach_slot (mpp->pg, pgp, j) {
++			if ((i = find_slot(pgp->paths, (void *)pp)) != -1){
++				vector_del_slot(pgp->paths, i);
++			}
++		}
+ 	}
+ }
+ 
+-- 
+2.14.3 (Apple Git-98)
+
