@@ -188,7 +188,7 @@ fi
 - SUG:NA
 - DESC:add needsrootforbuild for make test
 
-* Wed Aug 12 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-5
+* Thu Aug 12 2021 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-5
 - Type:testcode
 - ID:NA
 - SUG:NA
@@ -209,7 +209,7 @@ fi
 - SUG:NA
 - DESC:add check remove_local_disk before transport in pathinfo
 
-* Sat Jan 30 2020 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-1
+* Thu Jan 30 2020 lixiaokeng<lixiaokeng@huawei.com> - 0.8.5-1
 - update to 0.8.5
 
 * Fri Oct 16 2020 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-4
