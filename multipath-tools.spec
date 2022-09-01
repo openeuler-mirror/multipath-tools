@@ -1,7 +1,7 @@
 #needsrootforbuild
 Name:    multipath-tools
 Version: 0.8.7
-Release: 2
+Release: 3
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -24,6 +24,7 @@ Patch12: 0012-device-mapper-multipath-fix-find-multipath-failure.patch
 Patch13: 0013-kpartx-change-kpartx-file-and-default-bindir.patch
 Patch14: 0014-remove-local-disk-from-pathvec.patch
 Patch15: 0015-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
+Patch16: 0016-multipath-return-failure-on-an-invalid-remove-cmd.patch
 
 BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
@@ -170,6 +171,9 @@ fi
 
 
 %changelog
+* Wed Aug 31 2022 xueyamao<xueyamao@kylinos.cn> - 0.8.7-3
+- fix multipath return failure on an invalid remove command
+
 * Tue Mar 8 2022 lixiaokeng<lixiaokeng@huawei.com> - 0.8.7-2
 - don't create nvme multipath device when enable remove_local_path
 
