@@ -1,7 +1,7 @@
 #needsrootforbuild
 Name:    multipath-tools
 Version: 0.8.7
-Release: 3
+Release: 4
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -25,7 +25,7 @@ Patch13: 0013-kpartx-change-kpartx-file-and-default-bindir.patch
 Patch14: 0014-remove-local-disk-from-pathvec.patch
 Patch15: 0015-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
 Patch16: 0016-multipath-return-failure-on-an-invalid-remove-cmd.patch
-
+Patch17: 0017-multipath-fix-exit-status-of-multipath-T.patch
 BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, 
@@ -171,6 +171,9 @@ fi
 
 
 %changelog
+* Fri Sep 2 2022 xueyamao<xueyamao@kylinos.cn> - 0.8.7-4
+- multipath fix exit status of multipath -T
+
 * Wed Aug 31 2022 xueyamao<xueyamao@kylinos.cn> - 0.8.7-3
 - fix multipath return failure on an invalid remove command
 
