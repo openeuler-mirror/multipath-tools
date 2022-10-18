@@ -2,7 +2,7 @@
 
 Name:    multipath-tools
 Version: 0.8.4
-Release: 14
+Release: 15
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -42,7 +42,7 @@ Patch29: 0029-clear-path-in-mpp-pg-in-clear_ref_from_mpp.patch
 Patch30: 0030-multipathd-fix-mpp-hwe-use-after-free-in-ev_remove_p.patch
 Patch31: 0031-libmultipath-fix-daemon-memory-leak-in-disassemble_m.patch
 Patch32: 0032-libmultipath-fix-multipathd-coredump-in-disassemble_.patch
-
+Patch33: 0033-multipath-fix-exit-status-of-multipath-T.patch
 BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, git
@@ -188,6 +188,9 @@ fi
 
 
 %changelog
+* Tue Oct 18 2022 xueyamao<xueyamao@kylinos.cn> - 0.8.4-15
+- multipath fix exit status of multipath -T
+
 * Fri Apr 8 2022 lixiaokeng<lixiaokeng@huawei.com> - 0.8.4-14
 - fix coredump and memory leak in long-term stability test
 
