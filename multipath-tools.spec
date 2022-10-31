@@ -1,7 +1,7 @@
 #needsrootforbuild
 Name:    multipath-tools
 Version: 0.8.7
-Release: 4
+Release: 5
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -26,6 +26,7 @@ Patch14: 0014-remove-local-disk-from-pathvec.patch
 Patch15: 0015-clear-mpp-path-reference-when-path-is-freed-otherwis.patch
 Patch16: 0016-multipath-return-failure-on-an-invalid-remove-cmd.patch
 Patch17: 0017-multipath-fix-exit-status-of-multipath-T.patch
+Patch18: 0018-multipath-tools-use-run-instead-of-dev-shm.patch
 BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, 
@@ -143,6 +144,7 @@ fi
         /usr/%{_lib}/multipath/*
 %config /usr/lib/udev/rules.d/62-multipath.rules
 %config /usr/lib/udev/rules.d/11-dm-mpath.rules
+%config /usr/lib/tmpfiles.d/multipath.conf
 
 
 %files devel
@@ -171,6 +173,9 @@ fi
 
 
 %changelog
+* Wed Oct 26 2022 shikemeng<shikemeng@huawei.com> - 0.8.7-5
+- use /run instead of /dev/shm to fix CVE-2022-41973
+
 * Fri Sep 2 2022 xueyamao<xueyamao@kylinos.cn> - 0.8.7-4
 - multipath fix exit status of multipath -T
 
