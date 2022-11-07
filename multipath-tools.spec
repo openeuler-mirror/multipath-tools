@@ -2,7 +2,7 @@
 
 Name:    multipath-tools
 Version: 0.8.4
-Release: 16
+Release: 17
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -44,6 +44,11 @@ Patch31: 0031-libmultipath-fix-daemon-memory-leak-in-disassemble_m.patch
 Patch32: 0032-libmultipath-fix-multipathd-coredump-in-disassemble_.patch
 Patch33: 0033-multipath-fix-exit-status-of-multipath-T.patch
 Patch34: 0034-multipath-tools-use-run-instead-of-dev-shm.patch
+Patch35: 0035-multipathd-add-and-set-cli_handlers-in-a-single-step.patch
+Patch36: 0036-multipathd-make-all-cli_handlers-static.patch
+Patch37: 0037-multipathd-Fix-command-completion-in-interactive-mod.patch
+Patch38: 0038-multipathd-more-robust-command-parsing.patch
+
 BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
 BuildRequires:    libselinux-devel, libsepol-devel, readline-devel, ncurses-devel, git
@@ -190,6 +195,9 @@ fi
 
 
 %changelog
+* Wed Nov 2 2022 wuguanghao <wuguanghao3@huawei.com> - 0.8.4-17
+- fix CVE-2022-41974
+
 * Wed Nov 2 2022 Weifeng Su<suweifeng1@huawei.com> - 0.8.4-16
 - use /run instead of /dev/shm to fix CVE-2022-41973
 
