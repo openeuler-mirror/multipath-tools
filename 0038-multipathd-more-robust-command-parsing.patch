@@ -1,0 +1,950 @@
+From 2c2851e0d2041e5ce9070d6d267df3de5693cd58 Mon Sep 17 00:00:00 2001
+From: Martin Wilck <mwilck@suse.com>
+Date: Wed, 24 Aug 2022 19:05:08 +0200
+Subject: [PATCH] multipathd: more robust command parsing
+
+The current parser allows commands like "path sda show" or "list list
+add path sda", because it doesn't enforce ordering of the keywords
+and simply adds rather than or-s the values of the keys.
+
+Rework this by using a separate byte for the "verb" and the allowed
+qualifiers in the different positions of the command. No command
+needs more than 3 qualifiers, so we disallow command vectors with
+more than 4 elements, and change the type of the fingerprint to
+uint32_t.
+
+init_callbacks() is now required in both multipathc and multipathd
+to initialize the table of handlers and fingerprints. But as m
+ultipathc never calls any handler, we need not link the
+entire handlers code into it.
+
+Signed-off-by: Martin Wilck <mwilck@suse.com>
+Reviewed-by: Benjamin Marzinski <bmarzins@redhat.com>
+---
+ multipathd/callbacks.c    | 122 +++++++++++++------------
+ multipathd/cli.c          | 174 +++++++++++++++++++----------------
+ multipathd/cli.h          | 184 +++++++++++++++++++-------------------
+ multipathd/cli_handlers.c |  70 +++++++--------
+ 4 files changed, 289 insertions(+), 261 deletions(-)
+
+diff --git a/multipathd/callbacks.c b/multipathd/callbacks.c
+index 11edc5c..78a987b 100644
+--- a/multipathd/callbacks.c
++++ b/multipathd/callbacks.c
+@@ -1,59 +1,69 @@
+ void init_handler_callbacks(void)
+ {
+-	set_handler_callback(LIST+PATHS, HANDLER(cli_list_paths));
+-	set_handler_callback(LIST+PATHS+FMT, HANDLER(cli_list_paths_fmt));
+-	set_handler_callback(LIST+PATHS+RAW+FMT, HANDLER(cli_list_paths_raw));
+-	set_handler_callback(LIST+PATH, HANDLER(cli_list_path));
+-	set_handler_callback(LIST+MAPS, HANDLER(cli_list_maps));
+-	set_handler_callback(LIST+STATUS, HANDLER(cli_list_status));
+-	set_unlocked_handler_callback(LIST+DAEMON, HANDLER(cli_list_daemon));
+-	set_handler_callback(LIST+MAPS+STATUS, HANDLER(cli_list_maps_status));
+-	set_handler_callback(LIST+MAPS+STATS, HANDLER(cli_list_maps_stats));
+-	set_handler_callback(LIST+MAPS+FMT, HANDLER(cli_list_maps_fmt));
+-	set_handler_callback(LIST+MAPS+RAW+FMT, HANDLER(cli_list_maps_raw));
+-	set_handler_callback(LIST+MAPS+TOPOLOGY, HANDLER(cli_list_maps_topology));
+-	set_handler_callback(LIST+TOPOLOGY, HANDLER(cli_list_maps_topology));
+-	set_handler_callback(LIST+MAPS+JSON, HANDLER(cli_list_maps_json));
+-	set_handler_callback(LIST+MAP+TOPOLOGY, HANDLER(cli_list_map_topology));
+-	set_handler_callback(LIST+MAP+FMT, HANDLER(cli_list_map_fmt));
+-	set_handler_callback(LIST+MAP+RAW+FMT, HANDLER(cli_list_map_fmt));
+-	set_handler_callback(LIST+MAP+JSON, HANDLER(cli_list_map_json));
+-	set_handler_callback(LIST+CONFIG+LOCAL, HANDLER(cli_list_config_local));
+-	set_handler_callback(LIST+CONFIG, HANDLER(cli_list_config));
+-	set_handler_callback(LIST+BLACKLIST, HANDLER(cli_list_blacklist));
+-	set_handler_callback(LIST+DEVICES, HANDLER(cli_list_devices));
+-	set_handler_callback(LIST+WILDCARDS, HANDLER(cli_list_wildcards));
+-	set_handler_callback(RESET+MAPS+STATS, HANDLER(cli_reset_maps_stats));
+-	set_handler_callback(RESET+MAP+STATS, HANDLER(cli_reset_map_stats));
+-	set_handler_callback(ADD+PATH, HANDLER(cli_add_path));
+-	set_handler_callback(DEL+PATH, HANDLER(cli_del_path));
+-	set_handler_callback(ADD+MAP, HANDLER(cli_add_map));
+-	set_handler_callback(DEL+MAP, HANDLER(cli_del_map));
+-	set_handler_callback(DEL+MAPS, HANDLER(cli_del_maps));
+-	set_handler_callback(SWITCH+MAP+GROUP, HANDLER(cli_switch_group));
+-	set_unlocked_handler_callback(RECONFIGURE, HANDLER(cli_reconfigure));
+-	set_handler_callback(SUSPEND+MAP, HANDLER(cli_suspend));
+-	set_handler_callback(RESUME+MAP, HANDLER(cli_resume));
+-	set_handler_callback(RESIZE+MAP, HANDLER(cli_resize));
+-	set_handler_callback(RELOAD+MAP, HANDLER(cli_reload));
+-	set_handler_callback(RESET+MAP, HANDLER(cli_reassign));
+-	set_handler_callback(REINSTATE+PATH, HANDLER(cli_reinstate));
+-	set_handler_callback(FAIL+PATH, HANDLER(cli_fail));
+-	set_handler_callback(DISABLEQ+MAP, HANDLER(cli_disable_queueing));
+-	set_handler_callback(RESTOREQ+MAP, HANDLER(cli_restore_queueing));
+-	set_handler_callback(DISABLEQ+MAPS, HANDLER(cli_disable_all_queueing));
+-	set_handler_callback(RESTOREQ+MAPS, HANDLER(cli_restore_all_queueing));
+-	set_unlocked_handler_callback(QUIT, HANDLER(cli_quit));
+-	set_unlocked_handler_callback(SHUTDOWN, HANDLER(cli_shutdown));
+-	set_handler_callback(GETPRSTATUS+MAP, HANDLER(cli_getprstatus));
+-	set_handler_callback(SETPRSTATUS+MAP, HANDLER(cli_setprstatus));
+-	set_handler_callback(UNSETPRSTATUS+MAP, HANDLER(cli_unsetprstatus));
+-	set_handler_callback(FORCEQ+DAEMON, HANDLER(cli_force_no_daemon_q));
+-	set_handler_callback(RESTOREQ+DAEMON, HANDLER(cli_restore_no_daemon_q));
+-	set_handler_callback(GETPRKEY+MAP, HANDLER(cli_getprkey));
+-	set_handler_callback(SETPRKEY+MAP+KEY, HANDLER(cli_setprkey));
+-	set_handler_callback(UNSETPRKEY+MAP, HANDLER(cli_unsetprkey));
+-	set_handler_callback(SETMARGINAL+PATH, HANDLER(cli_set_marginal));
+-	set_handler_callback(UNSETMARGINAL+PATH, HANDLER(cli_unset_marginal));
+-	set_handler_callback(UNSETMARGINAL+MAP, HANDLER(cli_unset_all_marginal));
++	set_handler_callback(VRB_LIST | Q1_PATHS, HANDLER(cli_list_paths));
++	set_handler_callback(VRB_LIST | Q1_PATHS | Q2_FMT, HANDLER(cli_list_paths_fmt));
++	set_handler_callback(VRB_LIST | Q1_PATHS | Q2_RAW | Q3_FMT,
++			     HANDLER(cli_list_paths_raw));
++	set_handler_callback(VRB_LIST | Q1_PATH, HANDLER(cli_list_path));
++	set_handler_callback(VRB_LIST | Q1_MAPS, HANDLER(cli_list_maps));
++	set_handler_callback(VRB_LIST | Q1_STATUS, HANDLER(cli_list_status));
++	set_unlocked_handler_callback(VRB_LIST | Q1_DAEMON, HANDLER(cli_list_daemon));
++	set_handler_callback(VRB_LIST | Q1_MAPS | Q2_STATUS,
++			     HANDLER(cli_list_maps_status));
++	set_handler_callback(VRB_LIST | Q1_MAPS | Q2_STATS,
++			     HANDLER(cli_list_maps_stats));
++	set_handler_callback(VRB_LIST | Q1_MAPS | Q2_FMT, HANDLER(cli_list_maps_fmt));
++	set_handler_callback(VRB_LIST | Q1_MAPS | Q2_RAW | Q3_FMT,
++			     HANDLER(cli_list_maps_raw));
++	set_handler_callback(VRB_LIST | Q1_MAPS | Q2_TOPOLOGY,
++			     HANDLER(cli_list_maps_topology));
++	set_handler_callback(VRB_LIST | Q1_TOPOLOGY, HANDLER(cli_list_maps_topology));
++	set_handler_callback(VRB_LIST | Q1_MAPS | Q2_JSON, HANDLER(cli_list_maps_json));
++	set_handler_callback(VRB_LIST | Q1_MAP | Q2_TOPOLOGY,
++			     HANDLER(cli_list_map_topology));
++	set_handler_callback(VRB_LIST | Q1_MAP | Q2_FMT, HANDLER(cli_list_map_fmt));
++	set_handler_callback(VRB_LIST | Q1_MAP | Q2_RAW | Q3_FMT,
++			     HANDLER(cli_list_map_fmt));
++	set_handler_callback(VRB_LIST | Q1_MAP | Q2_JSON, HANDLER(cli_list_map_json));
++	set_handler_callback(VRB_LIST | Q1_CONFIG | Q2_LOCAL,
++			     HANDLER(cli_list_config_local));
++	set_handler_callback(VRB_LIST | Q1_CONFIG, HANDLER(cli_list_config));
++	set_handler_callback(VRB_LIST | Q1_BLACKLIST, HANDLER(cli_list_blacklist));
++	set_handler_callback(VRB_LIST | Q1_DEVICES, HANDLER(cli_list_devices));
++	set_handler_callback(VRB_LIST | Q1_WILDCARDS, HANDLER(cli_list_wildcards));
++	set_handler_callback(VRB_RESET | Q1_MAPS | Q2_STATS,
++			     HANDLER(cli_reset_maps_stats));
++	set_handler_callback(VRB_RESET | Q1_MAP | Q2_STATS,
++			     HANDLER(cli_reset_map_stats));
++	set_handler_callback(VRB_ADD | Q1_PATH, HANDLER(cli_add_path));
++	set_handler_callback(VRB_DEL | Q1_PATH, HANDLER(cli_del_path));
++	set_handler_callback(VRB_ADD | Q1_MAP, HANDLER(cli_add_map));
++	set_handler_callback(VRB_DEL | Q1_MAP, HANDLER(cli_del_map));
++	set_handler_callback(VRB_SWITCH | Q1_MAP | Q2_GROUP, HANDLER(cli_switch_group));
++	set_unlocked_handler_callback(VRB_RECONFIGURE, HANDLER(cli_reconfigure));
++	set_handler_callback(VRB_SUSPEND | Q1_MAP, HANDLER(cli_suspend));
++	set_handler_callback(VRB_RESUME | Q1_MAP, HANDLER(cli_resume));
++	set_handler_callback(VRB_RESIZE | Q1_MAP, HANDLER(cli_resize));
++	set_handler_callback(VRB_RELOAD | Q1_MAP, HANDLER(cli_reload));
++	set_handler_callback(VRB_RESET | Q1_MAP, HANDLER(cli_reassign));
++	set_handler_callback(VRB_REINSTATE | Q1_PATH, HANDLER(cli_reinstate));
++	set_handler_callback(VRB_FAIL | Q1_PATH, HANDLER(cli_fail));
++	set_handler_callback(VRB_DISABLEQ | Q1_MAP, HANDLER(cli_disable_queueing));
++	set_handler_callback(VRB_RESTOREQ | Q1_MAP, HANDLER(cli_restore_queueing));
++	set_handler_callback(VRB_DISABLEQ | Q1_MAPS, HANDLER(cli_disable_all_queueing));
++	set_handler_callback(VRB_RESTOREQ | Q1_MAPS, HANDLER(cli_restore_all_queueing));
++	set_unlocked_handler_callback(VRB_QUIT, HANDLER(cli_quit));
++	set_unlocked_handler_callback(VRB_SHUTDOWN, HANDLER(cli_shutdown));
++	set_handler_callback(VRB_GETPRSTATUS | Q1_MAP, HANDLER(cli_getprstatus));
++	set_handler_callback(VRB_SETPRSTATUS | Q1_MAP, HANDLER(cli_setprstatus));
++	set_handler_callback(VRB_UNSETPRSTATUS | Q1_MAP, HANDLER(cli_unsetprstatus));
++	set_handler_callback(VRB_FORCEQ | Q1_DAEMON, HANDLER(cli_force_no_daemon_q));
++	set_handler_callback(VRB_RESTOREQ | Q1_DAEMON, HANDLER(cli_restore_no_daemon_q));
++	set_handler_callback(VRB_GETPRKEY | Q1_MAP, HANDLER(cli_getprkey));
++	set_handler_callback(VRB_SETPRKEY | Q1_MAP | Q2_KEY, HANDLER(cli_setprkey));
++	set_handler_callback(VRB_UNSETPRKEY | Q1_MAP, HANDLER(cli_unsetprkey));
++	set_handler_callback(VRB_SETMARGINAL | Q1_PATH, HANDLER(cli_set_marginal));
++	set_handler_callback(VRB_UNSETMARGINAL | Q1_PATH, HANDLER(cli_unset_marginal));
++	set_handler_callback(VRB_UNSETMARGINAL | Q1_MAP,
++			     HANDLER(cli_unset_all_marginal));
+ }
+diff --git a/multipathd/cli.c b/multipathd/cli.c
+index 7541800..c0ad3f0 100644
+--- a/multipathd/cli.c
++++ b/multipathd/cli.c
+@@ -22,6 +22,9 @@
+ static vector keys;
+ static vector handlers;
+ 
++/* See KEY_INVALID in cli.h */
++#define INVALID_FINGERPRINT ((uint32_t)(0))
++ 
+ static struct key *
+ alloc_key (void)
+ {
+@@ -35,7 +38,7 @@ alloc_handler (void)
+ }
+ 
+ static int
+-add_key (vector vec, char * str, uint64_t code, int has_param)
++add_key (vector vec, char * str, uint8_t code, int has_param)
+ {
+ 	struct key * kw;
+ 
+@@ -65,7 +68,7 @@ out:
+ 	return 1;
+ }
+ 
+-static struct handler *add_handler (uint64_t fp, int (*fn)(void *, char **, int *, void *), bool locked)
++static struct handler *add_handler (uint32_t fp, int (*fn)(void *, char **, int *, void *), bool locked)
+ {
+ 	struct handler * h;
+ 
+@@ -89,11 +92,13 @@ static struct handler *add_handler (uint64_t fp, int (*fn)(void *, char **, int
+ }
+ 
+ static struct handler *
+-find_handler (uint64_t fp)
++find_handler (uint32_t fp)
+ {
+ 	int i;
+ 	struct handler *h;
+ 
++	if (fp == INVALID_FINGERPRINT)
++		return NULL;
+ 	vector_foreach_slot (handlers, h, i)
+ 		if (h->fingerprint == fp)
+ 			return h;
+@@ -102,14 +107,15 @@ find_handler (uint64_t fp)
+ }
+ 
+ int
+-__set_handler_callback (uint64_t fp, int (*fn)(void *, char **, int *, void *)), bool locked)
++__set_handler_callback (uint32_t fp, int (*fn)(void *, char **, int *, void *), bool locked)
+ {
+ 	struct handler * h;
+ 
++	assert(fp != INVALID_FINGERPRINT);
+ 	assert(find_handler(fp) == NULL);
+ 	h = add_handler(fp, fn, locked);
+ 	if (!h) {
+-		condlog(0, "%s: failed to set handler for code %"PRIu64,
++		condlog(0, "%s: failed to set handler for code %"PRIu32,
+ 			__func__, fp);
+  
+ 		return 1;
+@@ -163,57 +169,57 @@ load_keys (void)
+ 	if (!keys)
+ 		return 1;
+ 
+-	r += add_key(keys, "list", LIST, 0);
+-	r += add_key(keys, "show", LIST, 0);
+-	r += add_key(keys, "add", ADD, 0);
+-	r += add_key(keys, "remove", DEL, 0);
+-	r += add_key(keys, "del", DEL, 0);
+-	r += add_key(keys, "switch", SWITCH, 0);
+-	r += add_key(keys, "switchgroup", SWITCH, 0);
+-	r += add_key(keys, "suspend", SUSPEND, 0);
+-	r += add_key(keys, "resume", RESUME, 0);
+-	r += add_key(keys, "reinstate", REINSTATE, 0);
+-	r += add_key(keys, "fail", FAIL, 0);
+-	r += add_key(keys, "resize", RESIZE, 0);
+-	r += add_key(keys, "reset", RESET, 0);
+-	r += add_key(keys, "reload", RELOAD, 0);
+-	r += add_key(keys, "forcequeueing", FORCEQ, 0);
+-	r += add_key(keys, "disablequeueing", DISABLEQ, 0);
+-	r += add_key(keys, "restorequeueing", RESTOREQ, 0);
+-	r += add_key(keys, "paths", PATHS, 0);
+-	r += add_key(keys, "maps", MAPS, 0);
+-	r += add_key(keys, "multipaths", MAPS, 0);
+-	r += add_key(keys, "path", PATH, 1);
+-	r += add_key(keys, "map", MAP, 1);
+-	r += add_key(keys, "multipath", MAP, 1);
+-	r += add_key(keys, "group", GROUP, 1);
+-	r += add_key(keys, "reconfigure", RECONFIGURE, 0);
+-	r += add_key(keys, "daemon", DAEMON, 0);
+-	r += add_key(keys, "status", STATUS, 0);
+-	r += add_key(keys, "stats", STATS, 0);
+-	r += add_key(keys, "topology", TOPOLOGY, 0);
+-	r += add_key(keys, "config", CONFIG, 0);
+-	r += add_key(keys, "blacklist", BLACKLIST, 0);
+-	r += add_key(keys, "devices", DEVICES, 0);
+-	r += add_key(keys, "raw", RAW, 0);
+-	r += add_key(keys, "wildcards", WILDCARDS, 0);
+-	r += add_key(keys, "quit", QUIT, 0);
+-	r += add_key(keys, "exit", QUIT, 0);
+-	r += add_key(keys, "shutdown", SHUTDOWN, 0);
+-	r += add_key(keys, "getprstatus", GETPRSTATUS, 0);
+-	r += add_key(keys, "setprstatus", SETPRSTATUS, 0);
+-	r += add_key(keys, "unsetprstatus", UNSETPRSTATUS, 0);
+-	r += add_key(keys, "format", FMT, 1);
+-	r += add_key(keys, "json", JSON, 0);
+-	r += add_key(keys, "getprkey", GETPRKEY, 0);
+-	r += add_key(keys, "setprkey", SETPRKEY, 0);
+-	r += add_key(keys, "unsetprkey", UNSETPRKEY, 0);
+-	r += add_key(keys, "key", KEY, 1);
+-	r += add_key(keys, "local", LOCAL, 0);
+-	r += add_key(keys, "setmarginal", SETMARGINAL, 0);
+-	r += add_key(keys, "unsetmarginal", UNSETMARGINAL, 0);
+-
+-
++	r += add_key(keys, "list", VRB_LIST, 0);
++	r += add_key(keys, "show", VRB_LIST, 0);
++	r += add_key(keys, "add", VRB_ADD, 0);
++	r += add_key(keys, "remove", VRB_DEL, 0);
++	r += add_key(keys, "del", VRB_DEL, 0);
++	r += add_key(keys, "switch", VRB_SWITCH, 0);
++	r += add_key(keys, "switchgroup", VRB_SWITCH, 0);
++	r += add_key(keys, "suspend", VRB_SUSPEND, 0);
++	r += add_key(keys, "resume", VRB_RESUME, 0);
++	r += add_key(keys, "reinstate", VRB_REINSTATE, 0);
++	r += add_key(keys, "fail", VRB_FAIL, 0);
++	r += add_key(keys, "resize", VRB_RESIZE, 0);
++	r += add_key(keys, "reset", VRB_RESET, 0);
++	r += add_key(keys, "reload", VRB_RELOAD, 0);
++	r += add_key(keys, "forcequeueing", VRB_FORCEQ, 0);
++	r += add_key(keys, "disablequeueing", VRB_DISABLEQ, 0);
++	r += add_key(keys, "restorequeueing", VRB_RESTOREQ, 0);
++	r += add_key(keys, "paths", KEY_PATHS, 0);
++	r += add_key(keys, "maps", KEY_MAPS, 0);
++	r += add_key(keys, "multipaths", KEY_MAPS, 0);
++	r += add_key(keys, "path", KEY_PATH, 1);
++	r += add_key(keys, "map", KEY_MAP, 1);
++	r += add_key(keys, "multipath", KEY_MAP, 1);
++	r += add_key(keys, "group", KEY_GROUP, 1);
++	r += add_key(keys, "reconfigure", VRB_RECONFIGURE, 0);
++	r += add_key(keys, "daemon", KEY_DAEMON, 0);
++	r += add_key(keys, "status", KEY_STATUS, 0);
++	r += add_key(keys, "stats", KEY_STATS, 0);
++	r += add_key(keys, "topology", KEY_TOPOLOGY, 0);
++	r += add_key(keys, "config", KEY_CONFIG, 0);
++	r += add_key(keys, "blacklist", KEY_BLACKLIST, 0);
++	r += add_key(keys, "devices", KEY_DEVICES, 0);
++	r += add_key(keys, "raw", KEY_RAW, 0);
++	r += add_key(keys, "wildcards", KEY_WILDCARDS, 0);
++	r += add_key(keys, "quit", VRB_QUIT, 0);
++	r += add_key(keys, "exit", VRB_QUIT, 0);
++	r += add_key(keys, "shutdown", VRB_SHUTDOWN, 0);
++	r += add_key(keys, "getprstatus", VRB_GETPRSTATUS, 0);
++	r += add_key(keys, "setprstatus", VRB_SETPRSTATUS, 0);
++	r += add_key(keys, "unsetprstatus", VRB_UNSETPRSTATUS, 0);
++	r += add_key(keys, "format", KEY_FMT, 1);
++	r += add_key(keys, "json", KEY_JSON, 0);
++	r += add_key(keys, "getprkey", VRB_GETPRKEY, 0);
++	r += add_key(keys, "setprkey", VRB_SETPRKEY, 0);
++	r += add_key(keys, "unsetprkey", VRB_UNSETPRKEY, 0);
++	r += add_key(keys, "key", KEY_KEY, 1);
++	r += add_key(keys, "local", KEY_LOCAL, 0);
++	r += add_key(keys, "setmarginal", VRB_SETMARGINAL, 0);
++	r += add_key(keys, "unsetmarginal", VRB_UNSETMARGINAL, 0);
++	r += add_key(keys, "all", KEY_ALL, 0);
++ 
+ 	if (r) {
+ 		free_keys(keys);
+ 		keys = NULL;
+@@ -321,19 +327,22 @@ out:
+ 	return r;
+ }
+ 
+-static uint64_t
++static uint32_t
+ fingerprint(vector vec)
+ {
+ 	int i;
+-	uint64_t fp = 0;
++	uint32_t fp = 0;
+ 	struct key * kw;
+ 
+-	if (!vec)
+-		return 0;
+-
+-	vector_foreach_slot(vec, kw, i)
+-		fp += kw->code;
++	if (!vec || VECTOR_SIZE(vec) > 4)
++		return INVALID_FINGERPRINT;
+ 
++	vector_foreach_slot(vec, kw, i) {
++		if (i >= 4)
++			break;
++		fp |= (uint32_t)kw->code << (8 * i);
++	}
++ 
+ 	return fp;
+ }
+ 
+@@ -370,8 +379,8 @@ genhelp_sprint_aliases (char * reply, int maxlen, vector keys,
+ static int
+ do_genhelp(char *reply, int maxlen, const char *cmd, int error) {
+ 	int len = 0;
+-	int i, j;
+-	uint64_t fp;
++	int i, j, k;
++	uint32_t fp;
+ 	struct handler * h;
+ 	struct key * kw;
+ 
+@@ -400,25 +409,32 @@ do_genhelp(char *reply, int maxlen, const char *cmd, int error) {
+ 
+ 	vector_foreach_slot (handlers, h, i) {
+ 		fp = h->fingerprint;
+-		vector_foreach_slot (keys, kw, j) {
+-			if ((kw->code & fp)) {
+-				fp -= kw->code;
+-				len += snprintf(reply + len , maxlen - len,
++		for (k = 0; k < 4; k++, fp >>= 8) {
++			uint32_t code = fp & 0xff;
++
++			if (!code)
++				break;
++
++			vector_foreach_slot (keys, kw, j) {
++
++        if ((uint32_t)kw->code == code) {
++					len += snprintf(reply + len , maxlen - len,
+ 						" %s", kw->str);
+-				if (len >= maxlen)
+-					goto out;
+-				len += genhelp_sprint_aliases(reply + len,
++					if (len >= maxlen)
++						goto out;
++					len += genhelp_sprint_aliases(reply + len,
+ 							      maxlen - len,
+ 							      keys, kw);
+-				if (len >= maxlen)
+-					goto out;
++					if (len >= maxlen)
++						goto out;
+ 
+-				if (kw->has_param) {
+-					len += snprintf(reply + len,
++					if (kw->has_param) {
++						len += snprintf(reply + len,
+ 							maxlen - len,
+ 							" $%s", kw->str);
+-					if (len >= maxlen)
+-						goto out;
++						if (len >= maxlen)
++							goto out;
++					}
+ 				}
+ 			}
+ 		}
+@@ -514,7 +530,7 @@ parse_cmd (char * cmd, char ** reply, int * len, void * data, int timeout )
+ }
+ 
+ char *
+-get_keyparam (vector v, uint64_t code)
++get_keyparam (vector v, uint8_t code)
+ {
+ 	struct key * kw;
+ 	int i;
+diff --git a/multipathd/cli.h b/multipathd/cli.h
+index 6459203..44cfab8 100644
+--- a/multipathd/cli.h
++++ b/multipathd/cli.h
+@@ -2,97 +2,99 @@
+ #define _CLI_H_
+ 
+ #include <stdint.h>
++#include <stdbool.h>
++/*
++ * CLI commands consist of 4 bytes, a verb (byte 0) and up to
++ * 3 qualifiers (byte 1 - 3).
++ */
+ 
+ enum {
+-	__LIST,
+-	__ADD,
+-	__DEL,
+-	__SWITCH,
+-	__SUSPEND,
+-	__RESUME,
+-	__REINSTATE,
+-	__FAIL,
+-	__RESIZE,
+-	__RESET,
+-	__RELOAD,
+-	__FORCEQ,
+-	__DISABLEQ,
+-	__RESTOREQ,
+-	__PATHS,
+-	__MAPS,
+-	__PATH,
+-	__MAP,
+-	__GROUP,
+-	__RECONFIGURE,
+-	__DAEMON,
+-	__STATUS,
+-	__STATS,
+-	__TOPOLOGY,
+-	__CONFIG,
+-	__BLACKLIST,
+-	__DEVICES,
+-	__RAW,
+-	__WILDCARDS,
+-	__QUIT,
+-	__SHUTDOWN,
+-	__GETPRSTATUS,
+-	__SETPRSTATUS,
+-	__UNSETPRSTATUS,
+-	__FMT,
+-	__JSON,
+-	__GETPRKEY,
+-	__SETPRKEY,
+-	__UNSETPRKEY,
+-	__KEY,
+-	__LOCAL,
+-	__SETMARGINAL,
+-	__UNSETMARGINAL,
++	/* See INVALID_FINGERPRINT in cli.c */
++	KEY_INVALID		=  0,
++
++	/* Verbs */
++	VRB_LIST		=  1,
++	VRB_ADD			=  2,
++	VRB_DEL			=  3,
++	VRB_RESET		=  4,
++	VRB_SWITCH		=  5,
++	VRB_RECONFIGURE		=  6,
++	VRB_SUSPEND		=  7,
++	VRB_RESUME		=  8,
++	VRB_RESIZE		=  9,
++	VRB_RELOAD		= 10,
++	VRB_FAIL		= 11,
++	VRB_REINSTATE		= 12,
++	VRB_DISABLEQ		= 13,
++	VRB_RESTOREQ		= 14,
++	VRB_FORCEQ		= 15,
++	VRB_GETPRSTATUS		= 16,
++	VRB_SETPRSTATUS		= 17,
++	VRB_UNSETPRSTATUS	= 18,
++	VRB_GETPRKEY		= 19,
++	VRB_SETPRKEY		= 20,
++	VRB_UNSETPRKEY		= 21,
++	VRB_SETMARGINAL		= 22,
++	VRB_UNSETMARGINAL	= 23,
++	VRB_SHUTDOWN		= 24,
++	VRB_QUIT		= 25,
++
++	/* Qualifiers, values must be different from verbs */
++	KEY_PATH		= 65,
++	KEY_PATHS		= 66,
++	KEY_MAP			= 67,
++	KEY_MAPS		= 68,
++	KEY_TOPOLOGY		= 69,
++	KEY_CONFIG		= 70,
++	KEY_BLACKLIST		= 71,
++	KEY_DEVICES		= 72,
++	KEY_WILDCARDS		= 73,
++	KEY_ALL			= 74,
++	KEY_DAEMON		= 75,
++	KEY_FMT			= 76,
++	KEY_RAW			= 77,
++	KEY_STATUS		= 78,
++	KEY_STATS		= 79,
++	KEY_JSON		= 80,
++	KEY_LOCAL		= 81,
++	KEY_GROUP		= 82,
++	KEY_KEY			= 83,
+ };
+ 
+-#define LIST		(1 << __LIST)
+-#define ADD		(1 << __ADD)
+-#define DEL		(1 << __DEL)
+-#define SWITCH		(1 << __SWITCH)
+-#define SUSPEND		(1 << __SUSPEND)
+-#define RESUME		(1 << __RESUME)
+-#define REINSTATE	(1 << __REINSTATE)
+-#define FAIL		(1 << __FAIL)
+-#define RESIZE		(1 << __RESIZE)
+-#define RESET		(1 << __RESET)
+-#define RELOAD		(1 << __RELOAD)
+-#define FORCEQ		(1 << __FORCEQ)
+-#define DISABLEQ	(1 << __DISABLEQ)
+-#define RESTOREQ	(1 << __RESTOREQ)
+-#define PATHS		(1 << __PATHS)
+-#define MAPS		(1 << __MAPS)
+-#define PATH		(1 << __PATH)
+-#define MAP		(1 << __MAP)
+-#define GROUP		(1 << __GROUP)
+-#define RECONFIGURE	(1 << __RECONFIGURE)
+-#define DAEMON		(1 << __DAEMON)
+-#define STATUS		(1 << __STATUS)
+-#define STATS		(1 << __STATS)
+-#define TOPOLOGY	(1 << __TOPOLOGY)
+-#define CONFIG		(1 << __CONFIG)
+-#define BLACKLIST	(1 << __BLACKLIST)
+-#define DEVICES		(1 << __DEVICES)
+-#define RAW		(1 << __RAW)
+-#define COUNT		(1 << __COUNT)
+-#define WILDCARDS	(1 << __WILDCARDS)
+-#define QUIT		(1 << __QUIT)
+-#define SHUTDOWN	(1 << __SHUTDOWN)
+-#define GETPRSTATUS	(1ULL << __GETPRSTATUS)
+-#define SETPRSTATUS	(1ULL << __SETPRSTATUS)
+-#define UNSETPRSTATUS	(1ULL << __UNSETPRSTATUS)
+-#define FMT		(1ULL << __FMT)
+-#define JSON		(1ULL << __JSON)
+-#define GETPRKEY	(1ULL << __GETPRKEY)
+-#define SETPRKEY	(1ULL << __SETPRKEY)
+-#define UNSETPRKEY	(1ULL << __UNSETPRKEY)
+-#define KEY		(1ULL << __KEY)
+-#define LOCAL		(1ULL << __LOCAL)
+-#define SETMARGINAL	(1ULL << __SETMARGINAL)
+-#define UNSETMARGINAL	(1ULL << __UNSETMARGINAL)
++/*
++ * The shifted qualifiers determine valid positions of the
++ * keywords in the known commands. E.g. the only qualifier
++ * that's valid in position 3 is "fmt", e.g. "list maps raw fmt".
++ */
++enum {
++	/* byte 1: qualifier 1 */
++	Q1_PATH			= KEY_PATH << 8,
++	Q1_PATHS		= KEY_PATHS << 8,
++	Q1_MAP			= KEY_MAP << 8,
++	Q1_MAPS			= KEY_MAPS << 8,
++	Q1_TOPOLOGY		= KEY_TOPOLOGY << 8,
++	Q1_CONFIG		= KEY_CONFIG << 8,
++	Q1_BLACKLIST		= KEY_BLACKLIST << 8,
++	Q1_DEVICES		= KEY_DEVICES << 8,
++	Q1_WILDCARDS		= KEY_WILDCARDS << 8,
++	Q1_ALL			= KEY_ALL << 8,
++	Q1_DAEMON		= KEY_DAEMON << 8,
++	Q1_STATUS		= KEY_STATUS << 8,
++
++	/* byte 2: qualifier 2 */
++	Q2_FMT			= KEY_FMT << 16,
++	Q2_RAW			= KEY_RAW << 16,
++	Q2_STATUS		= KEY_STATUS << 16,
++	Q2_STATS		= KEY_STATS << 16,
++	Q2_TOPOLOGY		= KEY_TOPOLOGY << 16,
++	Q2_JSON			= KEY_JSON << 16,
++	Q2_LOCAL		= KEY_LOCAL << 16,
++	Q2_GROUP		= KEY_GROUP << 16,
++	Q2_KEY			= KEY_KEY << 16,
++
++	/* byte 3: qualifier 3 */
++	Q3_FMT			= KEY_FMT << 24,
++};
+ 
+ #define INITIAL_REPLY_LEN	1200
+ 
+@@ -120,24 +122,24 @@ enum {
+ struct key {
+ 	char * str;
+ 	char * param;
+-	uint64_t code;
++	uint8_t code;
+ 	int has_param;
+ };
+ 
+ struct handler {
+-	uint64_t fingerprint;
++	uint32_t fingerprint;
+ 	int locked;
+ 	int (*fn)(void *, char **, int *, void *);
+ };
+ 
+ int alloc_handlers (void);
+-int __set_handler_callback (uint64_t fp, int (*fn)(void *, char **, int *, void *), bool locked);
++int __set_handler_callback (uint32_t fp, int (*fn)(void *, char **, int *, void *), bool locked);
+ #define set_handler_callback(fp, fn) __set_handler_callback(fp, fn, true)
+ #define set_unlocked_handler_callback(fp, fn) __set_handler_callback(fp, fn, false)
+ 
+ int parse_cmd (char * cmd, char ** reply, int * len, void *, int);
+ int load_keys (void);
+-char * get_keyparam (vector v, uint64_t code);
++char * get_keyparam (vector v, uint8_t code);
+ void free_keys (vector vec);
+ void free_handlers (void);
+ int cli_init (void);
+diff --git a/multipathd/cli_handlers.c b/multipathd/cli_handlers.c
+index a50f36c..2f3f98f 100644
+--- a/multipathd/cli_handlers.c
++++ b/multipathd/cli_handlers.c
+@@ -318,7 +318,7 @@ static int
+ cli_list_paths_fmt (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * fmt = get_keyparam(v, FMT);
++	char * fmt = get_keyparam(v, KEY_FMT);
+ 
+ 	condlog(3, "list paths (operator)");
+ 
+@@ -329,7 +329,7 @@ static int
+ cli_list_paths_raw (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * fmt = get_keyparam(v, FMT);
++	char * fmt = get_keyparam(v, KEY_FMT);
+ 
+ 	condlog(3, "list paths (operator)");
+ 
+@@ -340,7 +340,7 @@ static int
+ cli_list_path (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, PATH);
++	char * param = get_keyparam(v, KEY_PATH);
+ 	struct path *pp;
+ 
+ 	param = convert_dev(param, 1);
+@@ -358,7 +358,7 @@ cli_list_map_topology (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct multipath * mpp;
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 
+ 	param = convert_dev(param, 0);
+ 	get_path_layout(vecs->pathvec, 0);
+@@ -387,7 +387,7 @@ cli_list_map_json (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct multipath * mpp;
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 
+ 	param = convert_dev(param, 0);
+ 	get_path_layout(vecs->pathvec, 0);
+@@ -552,7 +552,7 @@ static int
+ cli_list_maps_fmt (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * fmt = get_keyparam(v, FMT);
++	char * fmt = get_keyparam(v, KEY_FMT);
+ 
+ 	condlog(3, "list maps (operator)");
+ 
+@@ -563,7 +563,7 @@ static int
+ cli_list_maps_raw (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * fmt = get_keyparam(v, FMT);
++	char * fmt = get_keyparam(v, KEY_FMT);
+ 
+ 	condlog(3, "list maps (operator)");
+ 
+@@ -575,8 +575,8 @@ cli_list_map_fmt (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct multipath * mpp;
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
+-	char * fmt = get_keyparam(v, FMT);
++	char * param = get_keyparam(v, KEY_MAP);
++	char * fmt = get_keyparam(v, KEY_FMT);
+ 
+ 	param = convert_dev(param, 0);
+ 	get_path_layout(vecs->pathvec, 0);
+@@ -658,7 +658,7 @@ cli_reset_map_stats (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+ 	struct multipath * mpp;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 
+ 	param = convert_dev(param, 0);
+ 	mpp = find_mp_by_str(vecs->mpvec, param);
+@@ -675,7 +675,7 @@ static int
+ cli_add_path (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, PATH);
++	char * param = get_keyparam(v, KEY_PATH);
+ 	struct path *pp;
+ 	int r;
+ 	struct config *conf;
+@@ -732,7 +732,7 @@ static int
+ cli_del_path (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, PATH);
++	char * param = get_keyparam(v, KEY_PATH);
+ 	struct path *pp;
+ 
+ 	param = convert_dev(param, 1);
+@@ -749,7 +749,7 @@ static int
+ cli_add_map (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 	int major, minor;
+ 	char dev_path[PATH_SIZE];
+ 	char *refwwid, *alias = NULL;
+@@ -810,7 +810,7 @@ static int
+ cli_del_map (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 	int major, minor;
+ 	char *alias;
+ 	int rc;
+@@ -836,7 +836,7 @@ static int
+ cli_reload(void *v, char **reply, int *len, void *data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * mapname = get_keyparam(v, MAP);
++	char * mapname = get_keyparam(v, KEY_MAP);
+ 	struct multipath *mpp;
+ 	int minor;
+ 
+@@ -889,7 +889,7 @@ static int
+ cli_resize(void *v, char **reply, int *len, void *data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * mapname = get_keyparam(v, MAP);
++	char * mapname = get_keyparam(v, KEY_MAP);
+ 	struct multipath *mpp;
+ 	int minor;
+ 	unsigned long long size, sz;
+@@ -998,7 +998,7 @@ static int
+ cli_restore_queueing(void *v, char **reply, int *len, void *data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * mapname = get_keyparam(v, MAP);
++	char * mapname = get_keyparam(v, KEY_MAP);
+ 	struct multipath *mpp;
+ 	int minor;
+ 	struct config *conf;
+@@ -1061,7 +1061,7 @@ static int
+ cli_disable_queueing(void *v, char **reply, int *len, void *data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * mapname = get_keyparam(v, MAP);
++	char * mapname = get_keyparam(v, KEY_MAP);
+ 	struct multipath *mpp;
+ 	int minor;
+ 
+@@ -1108,8 +1108,8 @@ cli_disable_all_queueing(void *v, char **reply, int *len, void *data)
+ static int
+ cli_switch_group(void * v, char ** reply, int * len, void * data)
+ {
+-	char * mapname = get_keyparam(v, MAP);
+-	int groupnum = atoi(get_keyparam(v, GROUP));
++	char * mapname = get_keyparam(v, KEY_MAP);
++	int groupnum = atoi(get_keyparam(v, KEY_GROUP));
+ 
+ 	mapname = convert_dev(mapname, 0);
+ 	condlog(2, "%s: switch to path group #%i (operator)", mapname, groupnum);
+@@ -1138,7 +1138,7 @@ static int
+ cli_suspend(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 	int r;
+ 	struct multipath * mpp;
+ 
+@@ -1168,7 +1168,7 @@ static int
+ cli_resume(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 	int r;
+ 	struct multipath * mpp;
+ 	uint16_t udev_flags;
+@@ -1200,7 +1200,7 @@ static int
+ cli_reinstate(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, PATH);
++	char * param = get_keyparam(v, KEY_PATH);
+ 	struct path * pp;
+ 
+ 	param = convert_dev(param, 1);
+@@ -1223,7 +1223,7 @@ static int
+ cli_reassign (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 	struct multipath *mpp;
+ 
+ 	param = convert_dev(param, 0);
+@@ -1247,7 +1247,7 @@ static int
+ cli_fail(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, PATH);
++	char * param = get_keyparam(v, KEY_PATH);
+ 	struct path * pp;
+ 	int r;
+ 
+@@ -1378,7 +1378,7 @@ cli_getprstatus (void * v, char ** reply, int * len, void * data)
+ {
+ 	struct multipath * mpp;
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 
+ 	param = convert_dev(param, 0);
+ 	get_path_layout(vecs->pathvec, 0);
+@@ -1403,7 +1403,7 @@ cli_setprstatus(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct multipath * mpp;
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 
+ 	param = convert_dev(param, 0);
+ 	get_path_layout(vecs->pathvec, 0);
+@@ -1426,7 +1426,7 @@ cli_unsetprstatus(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct multipath * mpp;
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, MAP);
++	char * param = get_keyparam(v, KEY_MAP);
+ 
+ 	param = convert_dev(param, 0);
+ 	get_path_layout(vecs->pathvec, 0);
+@@ -1448,7 +1448,7 @@ cli_getprkey(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct multipath * mpp;
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char *mapname = get_keyparam(v, MAP);
++	char *mapname = get_keyparam(v, KEY_MAP);
+ 	char *flagstr = "";
+ 
+ 	mapname = convert_dev(mapname, 0);
+@@ -1479,7 +1479,7 @@ cli_unsetprkey(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct multipath * mpp;
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char *mapname = get_keyparam(v, MAP);
++	char *mapname = get_keyparam(v, KEY_MAP);
+ 	int ret;
+ 	struct config *conf;
+ 
+@@ -1503,8 +1503,8 @@ cli_setprkey(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct multipath * mpp;
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char *mapname = get_keyparam(v, MAP);
+-	char *keyparam = get_keyparam(v, KEY);
++	char *mapname = get_keyparam(v, KEY_MAP);
++	char *keyparam = get_keyparam(v, KEY_KEY);
+ 	uint64_t prkey;
+ 	uint8_t flags;
+ 	int ret;
+@@ -1533,7 +1533,7 @@ cli_setprkey(void * v, char ** reply, int * len, void * data)
+ static int cli_set_marginal(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, PATH);
++	char * param = get_keyparam(v, KEY_PATH);
+ 	struct path * pp;
+ 
+ 	param = convert_dev(param, 1);
+@@ -1560,7 +1560,7 @@ static int cli_set_marginal(void * v, char ** reply, int * len, void * data)
+ static int cli_unset_marginal(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * param = get_keyparam(v, PATH);
++	char * param = get_keyparam(v, KEY_PATH);
+ 	struct path * pp;
+ 
+ 	param = convert_dev(param, 1);
+@@ -1587,7 +1587,7 @@ static int cli_unset_marginal(void * v, char ** reply, int * len, void * data)
+ static int cli_unset_all_marginal(void * v, char ** reply, int * len, void * data)
+ {
+ 	struct vectors * vecs = (struct vectors *)data;
+-	char * mapname = get_keyparam(v, MAP);
++	char * mapname = get_keyparam(v, KEY_MAP);
+ 	struct multipath *mpp;
+ 	struct pathgroup * pgp;
+ 	struct path * pp;
+-- 
+2.27.0
+
