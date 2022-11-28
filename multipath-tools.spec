@@ -2,7 +2,7 @@
 
 Name:    multipath-tools
 Version: 0.8.4
-Release: 17
+Release: 18
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -48,6 +48,7 @@ Patch35: 0035-multipathd-add-and-set-cli_handlers-in-a-single-step.patch
 Patch36: 0036-multipathd-make-all-cli_handlers-static.patch
 Patch37: 0037-multipathd-Fix-command-completion-in-interactive-mod.patch
 Patch38: 0038-multipathd-more-robust-command-parsing.patch
+Patch39: 0039-multipathd-Fixed-multipathd-parameter-invoking-seque.patch
 
 BuildRequires:    multipath-tools, libcmocka, libcmocka-devel
 BuildRequires:    gcc, libaio-devel, userspace-rcu-devel, device-mapper-devel >= 1.02.89
@@ -195,6 +196,9 @@ fi
 
 
 %changelog
+* Mon Nov 28 2022 miaoguanqin <miaoguanqin@huawei.com> - 0.8.4-18
+- fix CVE-2022-41974 cause mpathpersist and multipathd execute error
+
 * Wed Nov 2 2022 wuguanghao <wuguanghao3@huawei.com> - 0.8.4-17
 - fix CVE-2022-41974
 
