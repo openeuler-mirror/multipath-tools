@@ -1,0 +1,81 @@
+From b7eebd396261199cd9722a2cba14698446740f0d Mon Sep 17 00:00:00 2001
+From: miaoguanqin <miaoguanqin@huawei.com>
+Date: Thu, 17 Nov 2022 21:19:39 +0800
+Subject: [PATCH] multipathd: Fixed multipathd parameter invoking sequence
+ changed problem in CVE-2022-41974.
+
+Users may fail to execute command: multipathd and mpathpersist.
+
+When we execute the command mpathpersist：
+mpathpersist --out --register --param-sark=123 --prout-type=5 /dev/mapper/mpathb
+It return an error : Missing arguement. The preceding command calls the function
+cli_setprkey, which is called by checking whether the handle values are consistent
+with the command input. CVE-2022-41974 changed the handler value of function and
+changed the mode of calculating handle.  The handler value is not equal to the
+command input, causing multipathd can not execute the true funcion. It could be
+an same error for executing multipoathd by the old mode.
+
+multipathd invokes the corresponding function based on the handle value.
+CVE-2022-41964 changed the method of calculating handler value. Modify the handle
+value so that the corresponding function can be correctly execute.
+
+Signed-off-by: miaoguanqin <miaoguanqin@huawei.com>
+Signed-off-by: lixiaokeng <lixiaokeng@huawei.com>
+---
+ multipathd/callbacks.c | 18 +++++++++---------
+ multipathd/cli.h       |  9 ++++++++-
+ 2 files changed, 17 insertions(+), 10 deletions(-)
+
+diff --git a/multipathd/callbacks.c b/multipathd/callbacks.c
+index fb87b280..f32666be 100644
+--- a/multipathd/callbacks.c
++++ b/multipathd/callbacks.c
+@@ -57,16 +57,16 @@ void init_handler_callbacks(void)
+ 	set_handler_callback(VRB_RESTOREQ | Q1_MAPS, HANDLER(cli_restore_all_queueing));
+ 	set_unlocked_handler_callback(VRB_QUIT, HANDLER(cli_quit));
+ 	set_unlocked_handler_callback(VRB_SHUTDOWN, HANDLER(cli_shutdown));
+-	set_handler_callback(VRB_GETPRSTATUS | Q1_MAP, HANDLER(cli_getprstatus));
+-	set_handler_callback(VRB_SETPRSTATUS | Q1_MAP, HANDLER(cli_setprstatus));
+-	set_handler_callback(VRB_UNSETPRSTATUS | Q1_MAP, HANDLER(cli_unsetprstatus));
++	set_handler_callback(KEY_MAP | Q1_GETPRSTATUS, HANDLER(cli_getprstatus));
++	set_handler_callback(KEY_MAP | Q1_SETSTATUS, HANDLER(cli_setprstatus));
++	set_handler_callback(KEY_MAP | Q1_UNSETSTATUS, HANDLER(cli_unsetprstatus));
+ 	set_handler_callback(VRB_FORCEQ | Q1_DAEMON, HANDLER(cli_force_no_daemon_q));
+ 	set_handler_callback(VRB_RESTOREQ | Q1_DAEMON, HANDLER(cli_restore_no_daemon_q));
+-	set_handler_callback(VRB_GETPRKEY | Q1_MAP, HANDLER(cli_getprkey));
+-	set_handler_callback(VRB_SETPRKEY | Q1_MAP | Q2_KEY, HANDLER(cli_setprkey));
+-	set_handler_callback(VRB_UNSETPRKEY | Q1_MAP, HANDLER(cli_unsetprkey));
+-	set_handler_callback(VRB_SETMARGINAL | Q1_PATH, HANDLER(cli_set_marginal));
+-	set_handler_callback(VRB_UNSETMARGINAL | Q1_PATH, HANDLER(cli_unset_marginal));
+-	set_handler_callback(VRB_UNSETMARGINAL | Q1_MAP,
++	set_handler_callback(KEY_MAP | Q1_GETPRKEY, HANDLER(cli_getprkey));
++	set_handler_callback(KEY_MAP | Q1_SETKEY | Q2_KEY, HANDLER(cli_setprkey));
++	set_handler_callback(KEY_MAP | Q1_UNSETKEY, HANDLER(cli_unsetprkey));
++	set_handler_callback(KEY_PATH | Q1_SETMARGINAL, HANDLER(cli_set_marginal));
++	set_handler_callback(KEY_PATH | Q1_UNSETMARGINAL, HANDLER(cli_unset_marginal));
++	set_handler_callback(KEY_MAP | Q1_UNSETMARGINAL,
+ 			     HANDLER(cli_unset_all_marginal));
+ }
+diff --git a/multipathd/cli.h b/multipathd/cli.h
+index c6b79c9d..08ee5c8d 100644
+--- a/multipathd/cli.h
++++ b/multipathd/cli.h
+@@ -80,7 +80,14 @@ enum {
+ 	Q1_ALL			= KEY_ALL << 8,
+ 	Q1_DAEMON		= KEY_DAEMON << 8,
+ 	Q1_STATUS		= KEY_STATUS << 8,
+-
++	Q1_SETKEY		= VRB_SETPRKEY << 8,
++	Q1_UNSETKEY		= VRB_UNSETPRKEY << 8,
++	Q1_SETSTATUS		= VRB_SETPRSTATUS << 8,
++	Q1_UNSETSTATUS		= VRB_UNSETPRSTATUS << 8,
++	Q1_GETPRSTATUS		= VRB_GETPRSTATUS << 8,
++	Q1_GETPRKEY		= VRB_GETPRKEY << 8,
++	Q1_SETMARGINAL		= VRB_SETMARGINAL << 8,
++	Q1_UNSETMARGINAL	= VRB_UNSETMARGINAL << 8,
+ 	/* byte 2: qualifier 2 */
+ 	Q2_FMT			= KEY_FMT << 16,
+ 	Q2_RAW			= KEY_RAW << 16,
+-- 
+2.33.0
+
