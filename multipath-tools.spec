@@ -1,13 +1,13 @@
 #needsrootforbuild
 Name:    multipath-tools
 Version: 0.8.7
-Release: 7
+Release: 8
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
 
 # curl https://github.com/opensvc/multipath-tools/archive/0.8.7.tar.gz -o multipath-tools-0.8.7.tgz
-Source0: multipath-tools-0.8.7.tgz
+Source0: https://github.com/opensvc/multipath-tools/archive/%{version}.tar.gz
 Source1: multipath.conf
 Patch1:  0001-change-order-of-multipath.rules.patch
 Patch2:  0002-RH-add-mpathconf.patch
@@ -179,6 +179,9 @@ fi
 
 
 %changelog
+* Tue Nov 29 2022 Zhiqiang Liu <liuzhiqiang26@huawei.com> - 0.8.7-8
+- set Source0 to URL link.
+
 * Mon Nov 28 2022 miaoguanqin <miaoguanqin@huawei.com> - 0.8.7-7
 - CVE-2022-41974 cause mpathpersist and multipathd execute error
 
