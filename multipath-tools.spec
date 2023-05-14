@@ -1,7 +1,7 @@
 #needsrootforbuild
 Name:    multipath-tools
 Version: 0.8.7
-Release: 8
+Release: 9
 Summary: Tools to manage multipath devices with the device-mapper
 License: GPL-2.0-or-later and LGPL-2.0-only
 URL:     http://christophe.varoqui.free.fr/
@@ -93,6 +93,9 @@ Reads partition tables and create device maps over partitions segments detected.
 cp %{SOURCE1} .
 
 %build
+%if "%toolchain" == "clang"
+		export CFLAGS="$CFLAGS -Wno-error=unused-but-set-variable -Wno-error=unknown-warning-option"
+%endif
 %make_build LIB=%{_lib}
 
 %install
@@ -179,6 +182,9 @@ fi
 
 
 %changelog
+* Sat May 06 2023 yoo <sunyuechi@iscas.ac.cn> - 0.8.7-9
+- fix clang build error
+
 * Tue Nov 29 2022 Zhiqiang Liu <liuzhiqiang26@huawei.com> - 0.8.7-8
 - set Source0 to URL link.
 
